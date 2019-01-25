@@ -26,6 +26,9 @@ func main() {
 	log.Event(ctx, "doing something", log.FATAL)
 
 	log.Event(ctx, "doing something", log.FATAL, log.INFO, log.ERROR)
+
+	log.Event(ctx, "doing something", log.Auth(log.USER, "user-id"))
+	log.Event(ctx, "doing something", log.Auth(log.SERVICE, "service-id"))
 }
 
 // func ctx() {
