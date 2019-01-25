@@ -13,6 +13,8 @@ var start, end = time.Now(), time.Now()
 var ctx = context.TODO()
 
 func main() {
+	log.Namespace = "log-test"
+
 	log.Event(ctx, "started app")
 
 	log.Event(ctx, "received request", log.HTTP(req, 200, start, end))

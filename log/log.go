@@ -10,12 +10,26 @@ import (
 	"time"
 )
 
-var namespace = os.Args[0]
+// Namespace is the log namespace included with every log event.
+//
+// It defaults to the application binary name, but this should typically
+// be set to a more sensible name on application startup
+var Namespace = os.Args[0]
 
 var destination = os.Stdout
 var fallbackDestination = os.Stderr
 
-var isTestMode = flag.Lookup("test.v") != nil
+func init() {
+	if flag.Lookup("test.v") != nil {
+		Event = EventWithOptionsCheck
+	}
+}
+
+// EventFunc is a function which handles log events
+type eventFunc = func(ctx context.Context, event string, opts ...Loggable)
+
+// Event ...
+var Event = EventWithoutOptionsCheck
 
 // Loggable ...
 type Loggable interface {
@@ -40,29 +54,32 @@ type EventData struct {
 	Data *Data      `json:"data,omitempty"`
 }
 
-// Event ...
-func Event(ctx context.Context, event string, opts ...Loggable) {
-	e := EventData{
-		CreatedAt: time.Now(),
-		Namespace: namespace,
+// EventWithOptionsCheck is the event function used when running tests, and
+// will panic if the same log option is passed in multiple times
+//
+// It is only used during tests because of the runtime performance overhead
+func EventWithOptionsCheck(ctx context.Context, event string, opts ...Loggable) {
+	var optMap = make(map[string]struct{})
+	for _, o := range opts {
+		t := reflect.TypeOf(o)
+		p := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
+		if _, ok := optMap[p]; ok {
+			panic("can't pass in the same parameter type multiple times: " + p)
+		}
+		optMap[p] = struct{}{}
 	}
 
-	if isTestMode {
-		/*
-			Test for the same arg being passed in multiple times
+	Event(ctx, event, opts...)
+}
 
-			Only happens when using `go test` to avoid the runtime
-			overhead of doing type checks on every log event
-		*/
-		var optMap = make(map[string]struct{})
-		for _, o := range opts {
-			t := reflect.TypeOf(o)
-			p := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
-			if _, ok := optMap[p]; ok {
-				panic("can't pass in the same parameter type multiple times: " + p)
-			}
-			optMap[p] = struct{}{}
-		}
+// EventWithoutOptionsCheck is the event function used when we're not running tests
+//
+// It doesn't do any log options checks to minimise the runtime performance overhead
+func EventWithoutOptionsCheck(ctx context.Context, event string, opts ...Loggable) {
+	e := EventData{
+		CreatedAt: time.Now(),
+		Namespace: Namespace,
+		Event:     event,
 	}
 
 	for _, o := range opts {
