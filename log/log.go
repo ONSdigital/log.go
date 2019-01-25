@@ -32,6 +32,8 @@ func init() {
 	//
 	//    log.Event(nil, "demo", log.FATAL, log.WARN, log.ERROR)
 	//
+	// A flag called `test.v` is added by `go test`, so we can rely
+	// on that to detect test mode.
 	if flag.Lookup("test.v") != nil {
 		isTestMode = true
 		Event = eventWithOptionsCheck

@@ -17,11 +17,11 @@ func main() {
 
 	log.Event(ctx, "started app")
 
-	log.Event(ctx, "received request", log.HTTP(req, 200, start, end))
+	log.Event(ctx, "received request", log.HTTP(req, 200, &start, &end))
 
 	log.Event(ctx, "doing something", log.Data{"key": "value"})
 
-	log.Event(ctx, "doing something", log.Data{"key": "value"}, log.HTTP(req, 401, start, end))
+	log.Event(ctx, "doing something", log.Data{"key": "value"}, log.HTTP(req, 401, &start, &end))
 
 	log.Event(ctx, "doing something", log.FATAL)
 
