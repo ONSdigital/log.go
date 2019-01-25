@@ -6,8 +6,7 @@ import (
 	"time"
 )
 
-// EventHTTP ...
-type EventHTTP struct {
+type eventHTTP struct {
 	StatusCode int    `json:"status_code,omitempty"`
 	Method     string `json:"method,omitempty"`
 
@@ -24,7 +23,7 @@ type EventHTTP struct {
 	Duration  *time.Duration `json:"duration,omitempty"`
 }
 
-func (l *EventHTTP) attach(le *EventData) {
+func (l *eventHTTP) attach(le *EventData) {
 	le.HTTP = l
 }
 
@@ -40,7 +39,7 @@ func HTTP(req *http.Request, statusCode int, startedAt, endedAt *time.Time) opti
 		duration = endedAt.Sub(*startedAt)
 	}
 
-	return &EventHTTP{
+	return &eventHTTP{
 		StatusCode: statusCode,
 		Method:     req.Method,
 

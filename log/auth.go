@@ -1,11 +1,18 @@
 package log
 
-// EventAuth ...
-type EventAuth struct {
+type eventAuth struct {
 	Identity     string `json:"identity,omitempty"`
 	IdentityType string `json:"identity_type,omitempty"`
 }
 
-func (l *EventAuth) attach(le *EventData) {
+func (l *eventAuth) attach(le *EventData) {
 	le.Auth = l
+}
+
+// Auth ...
+func Auth(identity, identityType string) option {
+	return &eventAuth{
+		Identity:     identity,
+		IdentityType: identityType,
+	}
 }

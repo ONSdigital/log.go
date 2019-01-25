@@ -64,8 +64,8 @@ type EventData struct {
 	Severity *severity `json:"severity,omitempty"`
 
 	// Optional nested data
-	HTTP *EventHTTP `json:"http,omitempty"`
-	Auth *EventAuth `json:"auth,omitempty"`
+	HTTP *eventHTTP `json:"http,omitempty"`
+	Auth *eventAuth `json:"auth,omitempty"`
 	Data *Data      `json:"data,omitempty"`
 }
 
