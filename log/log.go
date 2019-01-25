@@ -48,12 +48,18 @@ func Event(ctx context.Context, event string, opts ...Loggable) {
 	}
 
 	if isTestMode {
+		/*
+			Test for the same arg being passed in multiple times
+
+			Only happens when using `go test` to avoid the runtime
+			overhead of doing type checks on every log event
+		*/
 		var optMap = make(map[string]struct{})
 		for _, o := range opts {
 			t := reflect.TypeOf(o)
-			p := t.PkgPath() + t.Name()
+			p := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
 			if _, ok := optMap[p]; ok {
-				panic("WTF")
+				panic("can't pass in the same parameter type multiple times: " + p)
 			}
 			optMap[p] = struct{}{}
 		}

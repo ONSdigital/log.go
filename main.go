@@ -22,15 +22,17 @@ func main() {
 	log.Event(ctx, "doing something", log.Data{"key": "value"}, log.HTTP(req, 401, start, end))
 
 	log.Event(ctx, "doing something", log.FATAL)
+
+	log.Event(ctx, "doing something", log.FATAL, log.INFO, log.ERROR)
 }
 
-func ctx() {
-	// first arg
-	log.Event(nil, "started app")
-	log.Event(ctx, "started app")
+// func ctx() {
+// 	// first arg
+// 	log.Event(nil, "started app")
+// 	log.Event(ctx, "started app")
 
-	// optional arg
-	log.Event("started app", log.Context(ctx))
+// 	// optional arg
+// 	log.Event("started app", log.Context(ctx))
 
-	log.
-}
+// 	log.
+// }
