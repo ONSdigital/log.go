@@ -46,7 +46,8 @@ type eventFunc = func(ctx context.Context, event string, opts ...option)
 // option is the interface which log options passed to eventFunc must match
 //
 // there's no point exporting this since it would require changes to the
-// EventData struct
+// EventData struct (unless it forces data into log.Data or some other field,
+// but we probably don't want that)
 type option interface {
 	attach(*EventData)
 }
