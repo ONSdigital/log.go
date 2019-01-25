@@ -1,80 +1,78 @@
 package log
 
 import (
+	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"net/http"
 	"os"
+	"reflect"
 	"time"
 )
 
 var namespace = os.Args[0]
+
 var destination = os.Stdout
+var fallbackDestination = os.Stderr
+
+var isTestMode = flag.Lookup("test.v") != nil
 
 // Loggable ...
 type Loggable interface {
-	attach(*logEvent)
+	Attach(*EventData)
 }
 
-type logEvent struct {
-	CreatedAt time.Time     `json:"created_at"`
-	Namespace string        `json:"namespace"`
-	HTTP      *logEventHTTP `json:"http,omitempty"`
-	Data      *Data         `json:"data,omitempty"`
-}
+// EventData ...
+type EventData struct {
+	// Required fields
+	CreatedAt time.Time `json:"created_at"`
+	Namespace string    `json:"namespace"`
+	Event     string    `json:"event"`
 
-// Data ...
-type Data map[string]interface{}
+	// Optional fields
+	TraceID  string    `json:"trace_id,omitempty"`
+	SpanID   string    `json:"span_id,omitempty"`
+	Severity *Severity `json:"severity,omitempty"`
 
-func (d Data) attach(le *logEvent) {
-	le.Data = &d
-}
-
-type logEventHTTP struct {
-	StatusCode int           `json:"status_code"`
-	StartedAt  time.Time     `json:"started_at"`
-	EndedAt    time.Time     `json:"ended_at"`
-	Duration   time.Duration `json:"duration"`
-	Path       string        `json:"path"`
-	Host       string        `json:"host"`
-	Port       int           `json:"port"`
-	Query      string        `json:"query"`
-}
-
-func (l *logEventHTTP) attach(le *logEvent) {
-	le.HTTP = l
-}
-
-type httpLogData struct {
-	req *http.Request
-}
-
-// HTTP ...
-func HTTP(req *http.Request, statusCode int, startedAt time.Time, endedAt time.Time) Loggable {
-	return &logEventHTTP{}
+	// Optional nested data
+	HTTP *EventHTTP `json:"http,omitempty"`
+	Auth *EventAuth `json:"auth,omitempty"`
+	Data *Data      `json:"data,omitempty"`
 }
 
 // Event ...
-func Event(event string, opts ...Loggable) {
-	e := logEvent{
+func Event(ctx context.Context, event string, opts ...Loggable) {
+	e := EventData{
 		CreatedAt: time.Now(),
 		Namespace: namespace,
 	}
 
+	if isTestMode {
+		var optMap = make(map[string]struct{})
+		for _, o := range opts {
+			t := reflect.TypeOf(o)
+			p := t.PkgPath() + t.Name()
+			if _, ok := optMap[p]; ok {
+				panic("WTF")
+			}
+			optMap[p] = struct{}{}
+		}
+	}
+
 	for _, o := range opts {
-		o.attach(&e)
+		o.Attach(&e)
 	}
 
 	b, err := json.Marshal(e)
 	if err != nil {
 		// TODO
+		return
 	}
 
-	n, err := fmt.Fprintln(destination, string(b))
-	if err != nil {
-		// TODO
-	}
-	if n != len(b) {
-		// TODO
+	// try and write to stdout
+	if n, err := fmt.Fprintln(destination, string(b)); n != len(b) || err != nil {
+		// if that fails, try and write to stderr
+		// not much point catching this error since there's not a lot else we can do
+		fmt.Fprintln(fallbackDestination, string(b))
 	}
 }

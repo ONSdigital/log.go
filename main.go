@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -9,13 +10,27 @@ import (
 
 var req, _ = http.NewRequest("GET", "/", nil)
 var start, end = time.Now(), time.Now()
+var ctx = context.TODO()
 
 func main() {
-	log.Event("started app")
+	log.Event(ctx, "started app")
 
-	log.Event("received request", log.HTTP(req, 200, start, end))
+	log.Event(ctx, "received request", log.HTTP(req, 200, start, end))
 
-	log.Event("doing something", log.Data{"key": "value"})
+	log.Event(ctx, "doing something", log.Data{"key": "value"})
 
-	log.Event("doing something", log.Data{"key": "value"}, log.HTTP(req, 401, start, end))
+	log.Event(ctx, "doing something", log.Data{"key": "value"}, log.HTTP(req, 401, start, end))
+
+	log.Event(ctx, "doing something", log.FATAL)
+}
+
+func ctx() {
+	// first arg
+	log.Event(nil, "started app")
+	log.Event(ctx, "started app")
+
+	// optional arg
+	log.Event("started app", log.Context(ctx))
+
+	log.
 }
