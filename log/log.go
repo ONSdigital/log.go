@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -18,6 +19,7 @@ var Namespace = os.Args[0]
 
 // Event logs an event to stdout
 var Event = eventWithoutOptionsCheck
+var styler = styleForMachine
 
 var destination = os.Stdout
 var fallbackDestination = os.Stderr
@@ -38,10 +40,17 @@ func init() {
 		isTestMode = true
 		Event = eventWithOptionsCheck
 	}
+
+	// If HUMAN_LOG is enabled, replace the default styler with a
+	// human readable styler
+	if b, _ := strconv.ParseBool(os.Getenv("HUMAN_LOG")); b {
+		styler = styleForHuman
+	}
 }
 
 // eventFunc is a function which handles log events
 type eventFunc = func(ctx context.Context, event string, opts ...option)
+type styleFunc = func(ctx context.Context, ef eventFunc, e EventData)
 
 // option is the interface which log options passed to eventFunc must match
 //
@@ -85,7 +94,7 @@ func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
 		optMap[p] = struct{}{}
 	}
 
-	Event(ctx, event, opts...)
+	eventWithoutOptionsCheck(ctx, event, opts...)
 }
 
 // eventWithoutOptionsCheck is the event function used when we're not running tests
@@ -104,7 +113,11 @@ func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option)
 		o.attach(&e)
 	}
 
-	b, err := json.Marshal(e)
+	print(styler(ctx, e, eventWithoutOptionsCheck))
+}
+
+// handleStyleError handles any errors from JSON marshalling in one of the styler functions
+func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, err error) []byte {
 	if err != nil {
 		// marshalling failed, so we'll log a marshalling error and use Sprintf
 		// to get some kind of text representation of the log data
@@ -113,7 +126,7 @@ func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option)
 		// e.g. using log.Data and passing in an io.Reader
 		//
 		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
-		eventWithoutOptionsCheck(ctx, "error marshalling event data", Data{"error": err.Error(), "event_data": fmt.Sprintf("%+v", e)})
+		ef(ctx, "error marshalling event data", Data{"error": err.Error(), "event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
 		if isTestMode {
@@ -122,6 +135,36 @@ func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option)
 			panic("error marshalling event data: " + fmt.Sprintf("%+v", e))
 		}
 
+		return []byte{}
+	}
+
+	return b
+}
+
+// styleForMachine renders the event data in JSONLine format
+func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
+	b, err := json.Marshal(e)
+
+	return handleStyleError(ctx, e, ef, b, err)
+}
+
+// styleForHuman renders the event data in a human readable format
+func styleForHuman(ctx context.Context, e EventData, ef eventFunc) []byte {
+	// FIXME we might not want to actually JSON marshall it at this point?
+	b, err := json.Marshal(e)
+
+	b = handleStyleError(ctx, e, ef, b, err)
+	if len(b) == 0 {
+		// handleStyleError has already done something for us, so we do nothing
+		return b
+	}
+
+	b = append(b, []byte("\nI IS HUMAN!")...)
+	return b
+}
+
+func print(b []byte) {
+	if len(b) == 0 {
 		return
 	}
 

@@ -29,6 +29,15 @@ func main() {
 
 	log.Event(ctx, "doing something", log.Auth(log.USER, "user-id"))
 	log.Event(ctx, "doing something", log.Auth(log.SERVICE, "service-id"))
+
+	go http.ListenAndServe(":10203", log.Middleware(http.HandlerFunc(handler)))
+
+	time.Sleep(5 * time.Millisecond)
+	http.Get("http://localhost:10203")
+}
+
+func handler(w http.ResponseWriter, req *http.Request) {
+	log.Event(req.Context(), "doing something in a handler")
 }
 
 // func ctx() {
