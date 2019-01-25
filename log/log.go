@@ -16,27 +16,40 @@ import (
 // be set to a more sensible name on application startup
 var Namespace = os.Args[0]
 
+// Event logs an event to stdout
+var Event = eventWithoutOptionsCheck
+
 var destination = os.Stdout
 var fallbackDestination = os.Stderr
 
+var isTestMode bool
+
 func init() {
+	// If we're in test mode, replace the Event function with one
+	// that has additional checks to find repeated event option types
+	//
+	// In test mode, a log event like this will result in a panic:
+	//
+	//    log.Event(nil, "demo", log.FATAL, log.WARN, log.ERROR)
+	//
 	if flag.Lookup("test.v") != nil {
-		Event = EventWithOptionsCheck
+		isTestMode = true
+		Event = eventWithOptionsCheck
 	}
 }
 
-// EventFunc is a function which handles log events
-type eventFunc = func(ctx context.Context, event string, opts ...Loggable)
+// eventFunc is a function which handles log events
+type eventFunc = func(ctx context.Context, event string, opts ...option)
 
-// Event ...
-var Event = EventWithoutOptionsCheck
-
-// Loggable ...
-type Loggable interface {
-	Attach(*EventData)
+// option is the interface which log options passed to eventFunc must match
+//
+// there's no point exporting this since it would require changes to the
+// EventData struct
+type option interface {
+	attach(*EventData)
 }
 
-// EventData ...
+// EventData is the structured data output for a log event
 type EventData struct {
 	// Required fields
 	CreatedAt time.Time `json:"created_at"`
@@ -46,7 +59,7 @@ type EventData struct {
 	// Optional fields
 	TraceID  string    `json:"trace_id,omitempty"`
 	SpanID   string    `json:"span_id,omitempty"`
-	Severity *Severity `json:"severity,omitempty"`
+	Severity *severity `json:"severity,omitempty"`
 
 	// Optional nested data
 	HTTP *EventHTTP `json:"http,omitempty"`
@@ -54,11 +67,11 @@ type EventData struct {
 	Data *Data      `json:"data,omitempty"`
 }
 
-// EventWithOptionsCheck is the event function used when running tests, and
+// eventWithOptionsCheck is the event function used when running tests, and
 // will panic if the same log option is passed in multiple times
 //
 // It is only used during tests because of the runtime performance overhead
-func EventWithOptionsCheck(ctx context.Context, event string, opts ...Loggable) {
+func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
 	var optMap = make(map[string]struct{})
 	for _, o := range opts {
 		t := reflect.TypeOf(o)
@@ -72,30 +85,53 @@ func EventWithOptionsCheck(ctx context.Context, event string, opts ...Loggable) 
 	Event(ctx, event, opts...)
 }
 
-// EventWithoutOptionsCheck is the event function used when we're not running tests
+// eventWithoutOptionsCheck is the event function used when we're not running tests
 //
 // It doesn't do any log options checks to minimise the runtime performance overhead
-func EventWithoutOptionsCheck(ctx context.Context, event string, opts ...Loggable) {
+func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option) {
 	e := EventData{
 		CreatedAt: time.Now(),
 		Namespace: Namespace,
 		Event:     event,
 	}
 
+	// loop around each log option and call its attach method, which takes care
+	// of the association with the EventData struct
 	for _, o := range opts {
-		o.Attach(&e)
+		o.attach(&e)
 	}
 
 	b, err := json.Marshal(e)
 	if err != nil {
-		// TODO
+		// marshalling failed, so we'll log a marshalling error and use Sprintf
+		// to get some kind of text representation of the log data
+		//
+		// other than out of memory errors, marshalling can only fail for an unsupported type
+		// e.g. using log.Data and passing in an io.Reader
+		//
+		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
+		eventWithoutOptionsCheck(ctx, "error marshalling event data", Data{"error": err.Error(), "event_data": fmt.Sprintf("%+v", e)})
+
+		// if we're in test mode, we'll also panic to cause tests to fail
+		if isTestMode {
+			// don't capture and reuse fmt.Sprintf output above for this, since that adds
+			// a performance/memory overhead, and reuse is only required in test mode
+			panic("error marshalling event data: " + fmt.Sprintf("%+v", e))
+		}
+
 		return
 	}
 
 	// try and write to stdout
-	if n, err := fmt.Fprintln(destination, string(b)); n != len(b) || err != nil {
+	if n, err := fmt.Fprintln(destination, string(b)); n != len(b)+1 || err != nil {
 		// if that fails, try and write to stderr
-		// not much point catching this error since there's not a lot else we can do
-		fmt.Fprintln(fallbackDestination, string(b))
+		if n, err := fmt.Fprintln(fallbackDestination, string(b)); n != len(b)+1 || err != nil {
+			// if that fails, panic!
+			//
+			// also defer an os.Exit since the panic might be captured in a recover
+			// block in the caller, but we always want to exit in this scenario
+			defer os.Exit(1)
+			panic("error writing log data: " + err.Error())
+		}
 	}
 }

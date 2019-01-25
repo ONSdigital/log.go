@@ -24,13 +24,12 @@ type EventHTTP struct {
 	Duration  time.Duration `json:"duration,omitempty"`
 }
 
-// Attach ...
-func (l *EventHTTP) Attach(le *EventData) {
+func (l *EventHTTP) attach(le *EventData) {
 	le.HTTP = l
 }
 
 // HTTP ...
-func HTTP(req *http.Request, statusCode int, startedAt time.Time, endedAt time.Time) Loggable {
+func HTTP(req *http.Request, statusCode int, startedAt time.Time, endedAt time.Time) option {
 	port := 0
 	if p := req.URL.Port(); len(p) > 0 {
 		port, _ = strconv.Atoi(p)

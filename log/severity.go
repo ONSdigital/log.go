@@ -2,7 +2,7 @@ package log
 
 const (
 	// FATAL ...
-	FATAL Severity = iota
+	FATAL severity = iota
 	// ERROR ...
 	ERROR
 	// WARN ...
@@ -11,10 +11,12 @@ const (
 	INFO
 )
 
-// Severity is the log severity level
-type Severity int
+// severity is the log severity level
+//
+// we don't export this because we don't want the caller
+// to be able to define their own severity levels
+type severity int
 
-// Attach ...
-func (s Severity) Attach(le *EventData) {
+func (s severity) attach(le *EventData) {
 	le.Severity = &s
 }

@@ -6,7 +6,6 @@ type EventAuth struct {
 	IdentityType string `json:"identity_type,omitempty"`
 }
 
-// Attach ...
-func (l *EventAuth) Attach(le *EventData) {
+func (l *EventAuth) attach(le *EventData) {
 	le.Auth = l
 }
