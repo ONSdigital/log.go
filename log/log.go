@@ -79,6 +79,9 @@ type EventData struct {
 	HTTP *eventHTTP `json:"http,omitempty"`
 	Auth *eventAuth `json:"auth,omitempty"`
 	Data *Data      `json:"data,omitempty"`
+
+	// Error data
+	Error *eventError `json:"error,omitempty"`
 }
 
 // eventWithOptionsCheck is the event function used when running tests, and

@@ -9,7 +9,7 @@ import (
 )
 
 // Middleware implements the logger middleware and captures HTTP request data
-func Middleware(f http.HandlerFunc) http.HandlerFunc {
+func Middleware(f http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		rc := &responseCapture{w, 0}
 		start := time.Now()
@@ -20,7 +20,7 @@ func Middleware(f http.HandlerFunc) http.HandlerFunc {
 			Event(req.Context(), "http request completed", HTTP(req, rc.statusCode, &start, &end))
 		}()
 
-		f(rc, req)
+		f.ServeHTTP(rc, req)
 	})
 }
 

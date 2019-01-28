@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -34,10 +35,16 @@ func main() {
 
 	time.Sleep(5 * time.Millisecond)
 	http.Get("http://localhost:10203")
+
+	causeError()
 }
 
 func handler(w http.ResponseWriter, req *http.Request) {
 	log.Event(req.Context(), "doing something in a handler")
+}
+
+func causeError() {
+	log.Event(nil, "some error", log.Error(errors.New("foo")))
 }
 
 // func ctx() {
