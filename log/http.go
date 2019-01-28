@@ -7,7 +7,7 @@ import (
 )
 
 type eventHTTP struct {
-	StatusCode int    `json:"status_code,omitempty"`
+	StatusCode *int   `json:"status_code,omitempty"`
 	Method     string `json:"method,omitempty"`
 
 	// URL data
@@ -40,7 +40,7 @@ func HTTP(req *http.Request, statusCode int, startedAt, endedAt *time.Time) opti
 	}
 
 	return &eventHTTP{
-		StatusCode: statusCode,
+		StatusCode: &statusCode,
 		Method:     req.Method,
 
 		Scheme: req.URL.Scheme,
