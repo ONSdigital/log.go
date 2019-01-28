@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	prettyjson "github.com/hokaccha/go-prettyjson"
 )
 
 // Namespace is the log namespace included with every log event.
@@ -150,17 +152,9 @@ func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
 
 // styleForHuman renders the event data in a human readable format
 func styleForHuman(ctx context.Context, e EventData, ef eventFunc) []byte {
-	// FIXME we might not want to actually JSON marshall it at this point?
-	b, err := json.Marshal(e)
+	b, err := prettyjson.Marshal(e)
 
-	b = handleStyleError(ctx, e, ef, b, err)
-	if len(b) == 0 {
-		// handleStyleError has already done something for us, so we do nothing
-		return b
-	}
-
-	b = append(b, []byte("\nI IS HUMAN!")...)
-	return b
+	return handleStyleError(ctx, e, ef, b, err)
 }
 
 func print(b []byte) {
