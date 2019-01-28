@@ -5,6 +5,7 @@ import "runtime"
 type eventError struct {
 	Error string            `json:"error,omitempty"`
 	Frame []eventErrorFrame `json:"stack,omitempty"`
+	Data  error             `json:"data,omitempty"`
 }
 
 type eventErrorFrame struct {
@@ -19,10 +20,10 @@ func (l *eventError) attach(le *EventData) {
 
 // Error ...
 func Error(err error) option {
-	// FIXME do we want to capture `err` somewhere?
 	e := &eventError{
 		Error: err.Error(),
 		Frame: make([]eventErrorFrame, 0),
+		Data:  err,
 	}
 
 	pc := make([]uintptr, 10)

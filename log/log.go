@@ -19,16 +19,13 @@ import (
 // be set to a more sensible name on application startup
 var Namespace = os.Args[0]
 
-// Event logs an event to stdout
-var Event = eventWithoutOptionsCheck
-var styler = styleForMachine
-
 var destination = os.Stdout
 var fallbackDestination = os.Stderr
 
 var isTestMode bool
 
-func init() {
+// Event logs an event to stdout
+var Event = func() eventFunc {
 	// If we're in test mode, replace the Event function with one
 	// that has additional checks to find repeated event option types
 	//
@@ -40,19 +37,25 @@ func init() {
 	// on that to detect test mode.
 	if flag.Lookup("test.v") != nil {
 		isTestMode = true
-		Event = eventWithOptionsCheck
+		return eventWithOptionsCheck
 	}
 
+	return eventWithoutOptionsCheck
+}()
+
+var styler = func() styleFunc {
 	// If HUMAN_LOG is enabled, replace the default styler with a
 	// human readable styler
 	if b, _ := strconv.ParseBool(os.Getenv("HUMAN_LOG")); b {
-		styler = styleForHuman
+		return styleForHuman
 	}
-}
+
+	return styleForMachine
+}()
 
 // eventFunc is a function which handles log events
 type eventFunc = func(ctx context.Context, event string, opts ...option)
-type styleFunc = func(ctx context.Context, ef eventFunc, e EventData)
+type styleFunc = func(ctx context.Context, e EventData, ef eventFunc) []byte
 
 // option is the interface which log options passed to eventFunc must match
 //
