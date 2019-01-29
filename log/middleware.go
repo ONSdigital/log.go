@@ -11,13 +11,13 @@ import (
 // Middleware implements the logger middleware and captures HTTP request data
 func Middleware(f http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		rc := &responseCapture{w, 0}
+		rc := &responseCapture{w, 0, 0}
 		start := time.Now()
-		Event(req.Context(), "http request received", HTTP(req, 0, &start, nil))
+		Event(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
 
 		defer func() {
 			end := time.Now()
-			Event(req.Context(), "http request completed", HTTP(req, rc.statusCode, &start, &end))
+			Event(req.Context(), "http request completed", HTTP(req, rc.statusCode, rc.bytesWritten, &start, &end))
 		}()
 
 		f.ServeHTTP(rc, req)
@@ -26,12 +26,19 @@ func Middleware(f http.Handler) http.Handler {
 
 type responseCapture struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode   int
+	bytesWritten int64
 }
 
 func (r *responseCapture) WriteHeader(status int) {
 	r.statusCode = status
 	r.ResponseWriter.WriteHeader(status)
+}
+
+func (r *responseCapture) Write(b []byte) (n int, err error) {
+	n, err = r.ResponseWriter.Write(b)
+	r.bytesWritten += int64(n)
+	return
 }
 
 func (r *responseCapture) Flush() {

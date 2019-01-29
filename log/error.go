@@ -1,14 +1,20 @@
 package log
 
-import "runtime"
+import (
+	"reflect"
+	"runtime"
+)
 
 type eventError struct {
-	Error string            `json:"error,omitempty"`
-	Frame []eventErrorFrame `json:"stack,omitempty"`
-	Data  error             `json:"data,omitempty"`
+	Error      string            `json:"error,omitempty"`
+	StackTrace []eventStackTrace `json:"stack_trace,omitempty"`
+	// This uses interface{} type, but should always be a type of kind struct
+	// (which serialises to map[string]interface{})
+	// See `func Error` switch block for more info
+	Data interface{} `json:"data,omitempty"`
 }
 
-type eventErrorFrame struct {
+type eventStackTrace struct {
 	File     string `json:"file,omitempty"`
 	Line     int    `json:"line,omitempty"`
 	Function string `json:"function,omitempty"`
@@ -21,9 +27,18 @@ func (l *eventError) attach(le *EventData) {
 // Error ...
 func Error(err error) option {
 	e := &eventError{
-		Error: err.Error(),
-		Frame: make([]eventErrorFrame, 0),
-		Data:  err,
+		Error:      err.Error(),
+		StackTrace: make([]eventStackTrace, 0),
+	}
+
+	k := reflect.Indirect(reflect.ValueOf(err)).Type().Kind()
+	switch k {
+	case reflect.Struct:
+		// We've got a struct type, so make it the top level value
+		e.Data = err
+	default:
+		// We have something else, so nest it inside a Data value
+		e.Data = Data{"value": err}
 	}
 
 	pc := make([]uintptr, 10)
@@ -34,7 +49,7 @@ func Error(err error) option {
 		for {
 			frame, more := frames.Next()
 
-			e.Frame = append(e.Frame, eventErrorFrame{
+			e.StackTrace = append(e.StackTrace, eventStackTrace{
 				File:     frame.File,
 				Line:     frame.Line,
 				Function: frame.Function,

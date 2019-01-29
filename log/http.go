@@ -18,9 +18,10 @@ type eventHTTP struct {
 	Query  string `json:"query,omitempty"`
 
 	// Timing data
-	StartedAt *time.Time     `json:"started_at,omitempty"`
-	EndedAt   *time.Time     `json:"ended_at,omitempty"`
-	Duration  *time.Duration `json:"duration,omitempty"`
+	StartedAt             *time.Time     `json:"started_at,omitempty"`
+	EndedAt               *time.Time     `json:"ended_at,omitempty"`
+	Duration              *time.Duration `json:"duration,omitempty"`
+	ResponseContentLength int64          `json:"response_content_length,omitempty"`
 }
 
 func (l *eventHTTP) attach(le *EventData) {
@@ -28,7 +29,7 @@ func (l *eventHTTP) attach(le *EventData) {
 }
 
 // HTTP ...
-func HTTP(req *http.Request, statusCode int, startedAt, endedAt *time.Time) option {
+func HTTP(req *http.Request, statusCode int, responseContentLength int64, startedAt, endedAt *time.Time) option {
 	port := 0
 	if p := req.URL.Port(); len(p) > 0 {
 		port, _ = strconv.Atoi(p)
@@ -49,8 +50,9 @@ func HTTP(req *http.Request, statusCode int, startedAt, endedAt *time.Time) opti
 		Path:   req.URL.Path,
 		Query:  req.URL.RawQuery,
 
-		StartedAt: startedAt,
-		EndedAt:   endedAt,
-		Duration:  &duration,
+		StartedAt:             startedAt,
+		EndedAt:               endedAt,
+		Duration:              &duration,
+		ResponseContentLength: responseContentLength,
 	}
 }

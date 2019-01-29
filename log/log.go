@@ -134,7 +134,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		// e.g. using log.Data and passing in an io.Reader
 		//
 		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
-		ef(ctx, "error marshalling event data", Data{"error": err.Error(), "event_data": fmt.Sprintf("%+v", e)})
+		ef(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
 		if isTestMode {
