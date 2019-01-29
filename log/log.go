@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ONSdigital/go-ns/common"
 	prettyjson "github.com/hokaccha/go-prettyjson"
 )
 
@@ -113,6 +114,10 @@ func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option)
 		CreatedAt: time.Now(),
 		Namespace: Namespace,
 		Event:     event,
+	}
+
+	if ctx != nil {
+		e.TraceID = common.GetRequestId(ctx)
 	}
 
 	// loop around each log option and call its attach method, which takes care
