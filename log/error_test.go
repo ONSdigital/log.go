@@ -67,7 +67,7 @@ func TestError(t *testing.T) {
 			errEventData := Error(err).(*eventError)
 			So(errEventData.Data, ShouldEqual, err)
 		})
-		Convey("A value of kind 'Int' is wrapped in Data{}", func() {
+		Convey("A value of other kinds (e.g. 'Int') is wrapped in Data{value:<err>}", func() {
 			err := customIntError(0)
 			errEventData := Error(err).(*eventError)
 			So(errEventData.Data, ShouldHaveSameTypeAs, Data{})
@@ -75,6 +75,15 @@ func TestError(t *testing.T) {
 		})
 	})
 
-	// TODO
-	// stack trace
+	Convey("Error function generates a stack trace", t, func() {
+		err := errors.New("new error")
+		// WARNING if this line moves, update `So(origin.Line, ...)` below
+		errEventData := Error(err).(*eventError)
+		So(errEventData.StackTrace, ShouldHaveLength, 10)
+		origin := errEventData.StackTrace[0]
+		So(origin.File, ShouldEndWith, "ONSdigital/log.go/log/error_test.go")
+		// If this test fails, check the `errEventData := Error(err).(*eventError)` line is still line 81!
+		So(origin.Line, ShouldEqual, 81)
+		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/log.TestError.func5")
+	})
 }
