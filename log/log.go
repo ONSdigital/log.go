@@ -33,7 +33,7 @@ var styleForHumanFunc = &styleFunc{styleForHuman}
 var styleForMachineFunc = &styleFunc{styleForMachine}
 
 // Event logs an event to stdout
-var Event = func(ctx context.Context, event string, opts ...option) {
+func Event(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, opts...)
 }
 

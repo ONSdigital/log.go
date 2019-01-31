@@ -9,11 +9,11 @@ import (
 
 func TestGoLogger(t *testing.T) {
 	mock := &eventFuncMock{}
-	oldEvent := Event
+	oldEvent := eventFuncInst
 	defer func() {
-		Event = oldEvent
+		eventFuncInst = oldEvent
 	}()
-	Event = mock.Event
+	eventFuncInst = &eventFunc{mock.Event}
 
 	Convey("Log data from standard library logger is captured", t, func() {
 		So(mock.hasBeenCalled, ShouldBeFalse)

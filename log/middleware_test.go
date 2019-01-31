@@ -98,11 +98,11 @@ func TestResponseCapture(t *testing.T) {
 
 func TestMiddleware(t *testing.T) {
 	mock := &eventFuncMock{}
-	oldEvent := Event
+	oldEvent := eventFuncInst
 	defer func() {
-		Event = oldEvent
+		eventFuncInst = oldEvent
 	}()
-	Event = mock.Event
+	eventFuncInst = &eventFunc{mock.Event}
 
 	Convey("Middleware wraps a http.Handler", t, func() {
 		var handlerWasCalled bool
