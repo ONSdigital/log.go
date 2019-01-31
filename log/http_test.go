@@ -31,7 +31,7 @@ func TestHTTP(t *testing.T) {
 			So(httpEvent.Scheme, ShouldEqual, "http")
 			So(httpEvent.Host, ShouldEqual, "localhost")
 			So(httpEvent.Port, ShouldEqual, 1234)
-			So(httpEvent.Path, ShouldEqual, "a/b/c")
+			So(httpEvent.Path, ShouldEqual, "/a/b/c")
 			So(httpEvent.Query, ShouldEqual, "x=1&y=2")
 
 			So(httpEvent.StartedAt, ShouldEqual, &startTime)
