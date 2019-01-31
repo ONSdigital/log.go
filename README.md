@@ -1,4 +1,4 @@
-log.go [![Build Status](https://travis-ci.org/ONSdigital/log.go.svg?branch=master)](https://travis-ci.org/ONSdigital/log.go)
+log.go [![Build Status](https://travis-ci.org/ONSdigital/log.go.svg?branch=master)](https://travis-ci.org/ONSdigital/log.go) [![GoDoc](https://godoc.org/github.com/ONSdigital/log.go/log?status.svg)](https://godoc.org/github.com/ONSdigital/log.go/log)
 ======
 
 Currently a prototype replacement logging library for Digital Publishing
