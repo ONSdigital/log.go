@@ -35,9 +35,10 @@ func HTTP(req *http.Request, statusCode int, responseContentLength int64, starte
 		port, _ = strconv.Atoi(p)
 	}
 
-	var duration time.Duration
+	var duration *time.Duration
 	if startedAt != nil && endedAt != nil {
-		duration = endedAt.Sub(*startedAt)
+		d := endedAt.Sub(*startedAt)
+		duration = &d
 	}
 
 	return &eventHTTP{
@@ -52,7 +53,7 @@ func HTTP(req *http.Request, statusCode int, responseContentLength int64, starte
 
 		StartedAt:             startedAt,
 		EndedAt:               endedAt,
-		Duration:              &duration,
+		Duration:              duration,
 		ResponseContentLength: responseContentLength,
 	}
 }
