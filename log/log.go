@@ -25,8 +25,19 @@ var fallbackDestination = os.Stderr
 
 var isTestMode bool
 
+var eventWithOptionsCheckFunc = &eventFunc{eventWithOptionsCheck}
+var eventWithoutOptionsCheckFunc = &eventFunc{eventWithoutOptionsCheck}
+var eventFuncInst = initEvent()
+
+var styleForHumanFunc = &styleFunc{styleForHuman}
+var styleForMachineFunc = &styleFunc{styleForMachine}
+
 // Event logs an event to stdout
-var Event = func() eventFunc {
+var Event = func(ctx context.Context, event string, opts ...option) {
+	eventFuncInst.f(ctx, event, opts...)
+}
+
+func initEvent() *eventFunc {
 	// If we're in test mode, replace the Event function with one
 	// that has additional checks to find repeated event option types
 	//
@@ -38,25 +49,32 @@ var Event = func() eventFunc {
 	// on that to detect test mode.
 	if flag.Lookup("test.v") != nil {
 		isTestMode = true
-		return eventWithOptionsCheck
+		return eventWithOptionsCheckFunc
 	}
 
-	return eventWithoutOptionsCheck
-}()
+	isTestMode = false
+	return eventWithoutOptionsCheckFunc
+}
 
-var styler = func() styleFunc {
+var styler = initStyler()
+
+func initStyler() *styleFunc {
 	// If HUMAN_LOG is enabled, replace the default styler with a
 	// human readable styler
 	if b, _ := strconv.ParseBool(os.Getenv("HUMAN_LOG")); b {
-		return styleForHuman
+		return styleForHumanFunc
 	}
 
-	return styleForMachine
-}()
+	return styleForMachineFunc
+}
 
 // eventFunc is a function which handles log events
-type eventFunc = func(ctx context.Context, event string, opts ...option)
-type styleFunc = func(ctx context.Context, e EventData, ef eventFunc) []byte
+type eventFunc struct {
+	f func(ctx context.Context, event string, opts ...option)
+}
+type styleFunc = struct {
+	f func(ctx context.Context, e EventData, ef eventFunc) []byte
+}
 
 // option is the interface which log options passed to eventFunc must match
 //
@@ -103,7 +121,7 @@ func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
 		optMap[p] = struct{}{}
 	}
 
-	eventWithoutOptionsCheck(ctx, event, opts...)
+	eventWithoutOptionsCheckFunc.f(ctx, event, opts...)
 }
 
 // eventWithoutOptionsCheck is the event function used when we're not running tests
@@ -126,7 +144,7 @@ func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option)
 		o.attach(&e)
 	}
 
-	print(styler(ctx, e, eventWithoutOptionsCheck))
+	print(styler.f(ctx, e, eventFunc{eventWithoutOptionsCheck}))
 }
 
 // handleStyleError handles any errors from JSON marshalling in one of the styler functions
@@ -139,7 +157,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		// e.g. using log.Data and passing in an io.Reader
 		//
 		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
-		ef(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
+		ef.f(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
 		if isTestMode {
