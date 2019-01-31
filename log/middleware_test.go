@@ -159,8 +159,8 @@ func TestMiddleware(t *testing.T) {
 				So(events[0].capCtx, ShouldEqual, ctx)
 				So(events[0].capOpts, ShouldHaveLength, 1)
 				So(events[0].capOpts[0], ShouldImplement, (*option)(nil))
-				So(events[0].capOpts[0], ShouldHaveSameTypeAs, &eventHTTP{})
-				http := events[0].capOpts[0].(*eventHTTP)
+				So(events[0].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
+				http := events[0].capOpts[0].(*EventHTTP)
 
 				So(http.StatusCode, ShouldNotBeNil)
 				So(*http.StatusCode, ShouldEqual, 0)
@@ -185,8 +185,8 @@ func TestMiddleware(t *testing.T) {
 				So(events[1].capCtx, ShouldEqual, ctx)
 				So(events[1].capOpts, ShouldHaveLength, 1)
 				So(events[1].capOpts[0], ShouldImplement, (*option)(nil))
-				So(events[1].capOpts[0], ShouldHaveSameTypeAs, &eventHTTP{})
-				http := events[1].capOpts[0].(*eventHTTP)
+				So(events[1].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
+				http := events[1].capOpts[0].(*EventHTTP)
 
 				So(http.StatusCode, ShouldNotBeNil)
 				So(*http.StatusCode, ShouldEqual, 200)

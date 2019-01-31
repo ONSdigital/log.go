@@ -16,8 +16,8 @@ import (
 
 // Namespace is the log namespace included with every log event.
 //
-// It defaults to the application binary name, but this should typically
-// be set to a more sensible name on application startup
+// It defaults to the application binary name, but this should
+// normally be set to a more sensible name on application startup
 var Namespace = os.Args[0]
 
 var destination = os.Stdout
@@ -32,7 +32,40 @@ var eventFuncInst = initEvent()
 var styleForHumanFunc = &styleFunc{styleForHuman}
 var styleForMachineFunc = &styleFunc{styleForMachine}
 
-// Event logs an event to stdout
+// Event logs an event, to STDOUT if possible, or STDERR if not.
+//
+// Context can be nil.
+//
+// An event string should be static strings which do not use
+// concatenation or Sprintf, e.g.
+//     "connecting to database"
+// rather than
+//     "connecting to database: " + databaseURL
+//
+// Additional data should be stored using Data{}
+//
+// You can also pass in additional options which log extra event
+// data, for example using the HTTP, Auth, Severity, Data and Error
+// functions.
+//
+//     log.Event(nil, "connecting to database", log.Data{"url": databaseURL})
+//
+// If HUMAN_LOG environment variable is set to a true value (true, TRUE, 1)
+// the log output will be syntax highlighted pretty printed JSON. Otherwise,
+// the output is JSONLines format, with one JSON object per line.
+//
+// When running tests, Event will panic if the same option is passed
+// in multiple times, for example:
+//
+//     log.Event(nil, "event", log.Data{}, log.Data{})
+//
+// It doesn't panic in normal usage because checking for duplicate entries
+// is expensive. Where this happens, options to the right take precedence,
+// for example:
+//
+//     log.Event(nil, "event", log.Data{"a": 1}, log.Data{"a": 2})
+//     // data.a = 2
+//
 func Event(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, opts...)
 }
@@ -85,7 +118,12 @@ type option interface {
 	attach(*EventData)
 }
 
-// EventData is the structured data output for a log event
+// EventData is the data structure used for logging an event
+//
+// It is the top level structure which contains all other log event data.
+//
+// It isn't very useful to export, other than for documenting the
+// data structure it outputs.
 type EventData struct {
 	// Required fields
 	CreatedAt time.Time `json:"created_at"`
@@ -98,12 +136,12 @@ type EventData struct {
 	Severity *severity `json:"severity,omitempty"`
 
 	// Optional nested data
-	HTTP *eventHTTP `json:"http,omitempty"`
+	HTTP *EventHTTP `json:"http,omitempty"`
 	Auth *eventAuth `json:"auth,omitempty"`
 	Data *Data      `json:"data,omitempty"`
 
 	// Error data
-	Error *eventError `json:"error,omitempty"`
+	Error *EventError `json:"error,omitempty"`
 }
 
 // eventWithOptionsCheck is the event function used when running tests, and

@@ -9,6 +9,18 @@ import (
 )
 
 // Middleware implements the logger middleware and captures HTTP request data
+//
+// It implements http.Handler, and wraps an inbound HTTP request to log useful
+// information including the URL, request start/complete times and duration,
+// status codes, and number of bytes written.
+//
+// If the request context includes a trace ID, this will be included in the
+// event data automatically.
+//
+// Each request will produce two log entries - one when the request is received,
+// and another when the response has completed.
+//
+// See the Event and HTTP functions for additional information.
 func Middleware(f http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req == nil {

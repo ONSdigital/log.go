@@ -5,7 +5,11 @@ import (
 	"runtime"
 )
 
-type eventError struct {
+// EventError is the data structure used for logging a error event.
+//
+// It isn't very useful to export, other than for documenting the
+// data structure it outputs.
+type EventError struct {
 	Error      string            `json:"error,omitempty"`
 	StackTrace []eventStackTrace `json:"stack_trace,omitempty"`
 	// This uses interface{} type, but should always be a type of kind struct
@@ -20,13 +24,24 @@ type eventStackTrace struct {
 	Function string `json:"function,omitempty"`
 }
 
-func (l *eventError) attach(le *EventData) {
+func (l *EventError) attach(le *EventData) {
 	le.Error = l
 }
 
-// Error ...
+// Error returns an option you can pass to Event to attach
+// error information to a log event
+//
+// It uses error.Error() to stringify the error value
+//
+// It also includes the error type itself as unstructured log
+// data. For a struct{} type, it is included directly. For all
+// other types, it is wrapped in a Data{} struct
+//
+// It also includes a full strack trace to where Error() is called,
+// so you shouldn't normally store a log.Error for reuse (e.g. as a
+// package level variable)
 func Error(err error) option {
-	e := &eventError{
+	e := &EventError{
 		Error:      err.Error(),
 		StackTrace: make([]eventStackTrace, 0),
 	}
