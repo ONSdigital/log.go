@@ -11,14 +11,18 @@ import (
 // data structure it outputs.
 type EventError struct {
 	Error      string            `json:"error,omitempty"`
-	StackTrace []eventStackTrace `json:"stack_trace,omitempty"`
+	StackTrace []EventStackTrace `json:"stack_trace,omitempty"`
 	// This uses interface{} type, but should always be a type of kind struct
 	// (which serialises to map[string]interface{})
 	// See `func Error` switch block for more info
 	Data interface{} `json:"data,omitempty"`
 }
 
-type eventStackTrace struct {
+// EventStackTrace is the data structure used for logging a stack trace.
+//
+// It isn't very useful to export, other than for documenting the
+// data structure it outputs.
+type EventStackTrace struct {
 	File     string `json:"file,omitempty"`
 	Line     int    `json:"line,omitempty"`
 	Function string `json:"function,omitempty"`
@@ -43,7 +47,7 @@ func (l *EventError) attach(le *EventData) {
 func Error(err error) option {
 	e := &EventError{
 		Error:      err.Error(),
-		StackTrace: make([]eventStackTrace, 0),
+		StackTrace: make([]EventStackTrace, 0),
 	}
 
 	k := reflect.Indirect(reflect.ValueOf(err)).Type().Kind()
@@ -64,7 +68,7 @@ func Error(err error) option {
 		for {
 			frame, more := frames.Next()
 
-			e.StackTrace = append(e.StackTrace, eventStackTrace{
+			e.StackTrace = append(e.StackTrace, EventStackTrace{
 				File:     frame.File,
 				Line:     frame.Line,
 				Function: frame.Function,
