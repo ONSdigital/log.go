@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strconv"
@@ -20,8 +21,8 @@ import (
 // normally be set to a more sensible name on application startup
 var Namespace = os.Args[0]
 
-var destination = os.Stdout
-var fallbackDestination = os.Stderr
+var destination io.Writer = os.Stdout
+var fallbackDestination io.Writer = os.Stderr
 
 var isTestMode bool
 
@@ -166,6 +167,11 @@ func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
 //
 // It doesn't do any log options checks to minimise the runtime performance overhead
 func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option) {
+	print(styler.f(ctx, *createEvent(ctx, event, opts...), eventFunc{eventWithoutOptionsCheck}))
+}
+
+// createEvent creates a new event struct and attaches the options to it
+func createEvent(ctx context.Context, event string, opts ...option) *EventData {
 	e := EventData{
 		CreatedAt: time.Now(),
 		Namespace: Namespace,
@@ -182,7 +188,7 @@ func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option)
 		o.attach(&e)
 	}
 
-	print(styler.f(ctx, e, eventFunc{eventWithoutOptionsCheck}))
+	return &e
 }
 
 // handleStyleError handles any errors from JSON marshalling in one of the styler functions
@@ -195,6 +201,10 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		// e.g. using log.Data and passing in an io.Reader
 		//
 		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
+		//
+		// note: Error(err) currently ignores this constraint, but it's expected that the `err`
+		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
+		//       which don't marshal any non-marshallable types anyway
 		ef.f(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
@@ -237,6 +247,13 @@ func print(b []byte) {
 			//
 			// also defer an os.Exit since the panic might be captured in a recover
 			// block in the caller, but we always want to exit in this scenario
+			//
+			// Note: deferring an os.Exit makes this particular block untestable
+			// using conventional `go test`. But it's a narrow enough edge case that
+			// it probably isn't worth trying, and only occurs in extreme circumstances
+			// (os.Stdout and os.Stderr both being closed) where unpredictable
+			// behaviour is expected. It's not clear what a panic or os.Exit would do
+			// in this scenario, or if our process is even still alive to get this far.
 			defer os.Exit(1)
 			panic("error writing log data: " + err.Error())
 		}
