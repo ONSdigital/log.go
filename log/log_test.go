@@ -32,10 +32,22 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("destination defaults to os.Stdout", func() {
+			// This test is commented out because when running in test mode, it appears
+			// that os.Stdout gets replaced (after destination is initialised), so they're
+			// never equal.
+			//
+			// I'm leaving it in to show the intent, even if it can't be verified by the test
+
 			//So(destination, ShouldEqual, os.Stdout)
 		})
 
 		Convey("fallbackDestination defaults to os.Stderr", func() {
+			// This test is commented out because when running in test mode, it appears
+			// that os.Stderr gets replaced (after fallbackDestination is initialised), so they're
+			// never equal.
+			//
+			// I'm leaving it in to show the intent, even if it can't be verified by the test
+
 			//So(destination, ShouldEqual, os.Stderr)
 		})
 
