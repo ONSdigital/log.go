@@ -11,7 +11,7 @@ const (
 	// SERVICE represents a service account type
 	SERVICE identityType = "service"
 	// USER represents a user account type
-	USER = "user"
+	USER identityType = "user"
 )
 
 func (l *eventAuth) attach(le *EventData) {
