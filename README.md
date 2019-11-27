@@ -3,7 +3,7 @@ log.go [![Build Status](https://travis-ci.org/ONSdigital/log.go.svg?branch=maste
 
 A log library for Go.
 
-Opinionated, and designed to match our [logging standards](https://github.com/ONSdigital/dp/blob/master/LOGGING_STANDARDS.md).
+Opinionated, and designed to match our [logging standards](https://github.com/ONSdigital/dp/blob/master/standards/LOGGING_STANDARDS.md).
 
 ### Licence
 
