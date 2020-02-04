@@ -173,7 +173,7 @@ func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option)
 // createEvent creates a new event struct and attaches the options to it
 func createEvent(ctx context.Context, event string, opts ...option) *EventData {
 	e := EventData{
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 		Namespace: Namespace,
 		Event:     event,
 	}

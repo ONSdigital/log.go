@@ -17,8 +17,8 @@ func TestHTTP(t *testing.T) {
 		So(http, ShouldImplement, (*option)(nil))
 
 		Convey("*EventHTTP has the correct fields", func() {
-			startTime := time.Now().Add(time.Second * -1)
-			endTime := time.Now()
+			startTime := time.Now().UTC().Add(time.Second * -1)
+			endTime := time.Now().UTC()
 			duration := endTime.Sub(startTime)
 
 			http := HTTP(req, 101, 123, &startTime, &endTime)
@@ -53,7 +53,7 @@ func TestHTTP(t *testing.T) {
 	})
 
 	Convey("Duration should be nil if startedAt is nil", t, func() {
-		endTime := time.Now()
+		endTime := time.Now().UTC()
 		http := HTTP(req, 101, 123, nil, &endTime)
 		httpEvent := http.(*EventHTTP)
 
@@ -61,7 +61,7 @@ func TestHTTP(t *testing.T) {
 	})
 
 	Convey("Duration should be nil if endedAt is nil", t, func() {
-		startTime := time.Now()
+		startTime := time.Now().UTC()
 		http := HTTP(req, 101, 123, &startTime, nil)
 		httpEvent := http.(*EventHTTP)
 

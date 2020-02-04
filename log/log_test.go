@@ -158,7 +158,7 @@ func TestLog(t *testing.T) {
 			evt := createEvent(nil, "event")
 			So(evt.CreatedAt.Unix(), ShouldBeGreaterThan, 0)
 
-			now := time.Now()
+			now := time.Now().UTC()
 			diff := now.Sub(evt.CreatedAt)
 			// if this starts failing, and the code hasn't changed, check that
 			// the two lines above actually take less than 100 milliseconds

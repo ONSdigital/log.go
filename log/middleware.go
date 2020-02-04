@@ -29,7 +29,7 @@ func Middleware(f http.Handler) http.Handler {
 		}
 
 		rc := &responseCapture{w, nil, 0}
-		start := time.Now()
+		start := time.Now().UTC()
 		Event(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
 
 		defer func() {
