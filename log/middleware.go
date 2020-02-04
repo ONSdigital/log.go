@@ -33,8 +33,14 @@ func Middleware(f http.Handler) http.Handler {
 		Event(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
 
 		defer func() {
-			end := time.Now()
-			Event(req.Context(), "http request completed", HTTP(req, *rc.statusCode, rc.bytesWritten, &start, &end))
+			end := time.Now().UTC()
+
+			statusCode := 0
+			if rc.statusCode != nil {
+				statusCode = *rc.statusCode
+			}
+
+			Event(req.Context(), "http request completed", HTTP(req, statusCode, rc.bytesWritten, &start, &end))
 		}()
 
 		f.ServeHTTP(rc, req)
