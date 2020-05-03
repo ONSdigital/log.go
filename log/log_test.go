@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -356,3 +357,134 @@ func TestLog(t *testing.T) {
 		So(string(bytesWritten), ShouldResemble, "styled output\n")
 	})
 }
+
+// run with:
+// go test -run=log_test.go -bench=Log -benchtime=100x
+
+/*func BenchmarkLog(b *testing.B) {
+	fmt.Println("Benchmarking: 'Log'")
+	ctx := context.Background()
+	errToLog := errors.New("test error")
+	message1 := "m1"
+	data1 := "d1"
+	data2 := "d2"
+	data3 := "d3"
+	data4 := "d4"
+	req, err := http.NewRequest("GET", "https://httpbin.org/get", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("req: %v\n", req)
+
+	for i := 0; i < b.N; i++ {
+		Event(ctx,
+			message1,
+			INFO,
+			Data{"data_1": data1, "data_2": data2, "data_3": data3, "data_4": data4},
+			Error(errToLog),
+			HTTP(req, 0, 0, nil, nil),
+			Auth(USER, "tester-1"))
+	}
+}*/
+
+// run with:
+// go test -run=log_test.go -bench=. -benchtime=1000000000x
+
+// on 1st May 2020 gave results:
+/*
+
+Benchmarking: 'Log - o.attach'
+goos: linux
+goarch: amd64
+pkg: github.com/ONSdigital/log.go/log
+BenchmarkLog2-12    	Benchmarking: 'Log - o.attach'
+1000000000	       142 ns/op
+Benchmarking: 'Log - switch'
+BenchmarkLog3-12    	Benchmarking: 'Log - switch'
+1000000000	       141 ns/op
+PASS
+ok  	github.com/ONSdigital/log.go/log	282.637s
+
+*/
+
+func BenchmarkLog2(b *testing.B) {
+	fmt.Println("Benchmarking: 'Log - o.attach'")
+	err := errors.New("test error")
+	message1 := "m1"
+	data1 := "d1"
+	data2 := "d2"
+	data3 := "d3"
+	data4 := "d4"
+
+	var opts [4]option
+
+	opts[0] = INFO
+	opts[1] = Data{"data_1": data1, "data_2": data2, "data_3": data3, "data_4": data4}
+	opts[2] = Error(err)
+	opts[3] = Data{"data_4": data4, "data_2": data2}
+
+	e := EventData{
+		CreatedAt: time.Now().UTC(),
+		Namespace: Namespace,
+		Event:     message1,
+	}
+
+	for i := 0; i < b.N; i++ {
+		// loop around each log option and call its attach method, which takes care
+		// of the association with the EventData struct
+		for _, o := range opts {
+			// Using rare pattern : `thing.attach(toObject)`
+			// this handles both cases where:
+			// the receiver can be called either `dataThing.attach(...)` or `ptrToDataThing.attach(...)
+			o.attach(&e)
+		}
+	}
+}
+
+func BenchmarkLog3(b *testing.B) {
+	fmt.Println("Benchmarking: 'Log - switch'")
+	err := errors.New("test error")
+	message1 := "m1"
+	data1 := "d1"
+	data2 := "d2"
+	data3 := "d3"
+	data4 := "d4"
+
+	var opts [4]option
+
+	opts[0] = INFO
+	opts[1] = Data{"data_1": data1, "data_2": data2, "data_3": data3, "data_4": data4}
+	opts[2] = Error(err)
+	opts[3] = Data{"data_4": data4, "data_2": data2}
+
+	e := EventData{
+		CreatedAt: time.Now().UTC(),
+		Namespace: Namespace,
+		Event:     message1,
+	}
+
+	for i := 0; i < b.N; i++ {
+		// loop around each log option and attach each option
+		// directly into EventData struct
+		for _, o := range opts {
+			// Doing typical pattern : `object.attach(thing)`
+			switch v := o.(type) {
+			case severity:
+				e.Severity = &v
+			case Data:
+				e.Data = &v
+			case *EventHTTP:
+				e.HTTP = v
+			case *EventError:
+				e.Error = v
+			case *eventAuth:
+				e.Auth = v
+			default:
+				fmt.Printf("option: %v, %v, %T", o, v, v)
+				panic("unknown option")
+			}
+		}
+	}
+}
+
