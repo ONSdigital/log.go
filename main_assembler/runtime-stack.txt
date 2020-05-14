@@ -1,0 +1,48 @@
+14th May 2020
+
+I did some searches and found a REALLY good blog article thing from uber:
+
+https://eng.uber.com/optimizing-m3/
+
+Highly recommended reading to help one consider the code one writes for 'high performance' web servers ...
+
+The Uber article talks about a runtime function: runtime.morestack
+
+... So ... Hmmm ...
+
+Lets go back and have a look at the assembler output for my Benchmarking of the o.attach(&e) ...
+
+to see if the methods called invoke "runtime.morestack" ...
+
+And indeed, some of them do ...
+
+Whereas when i inspect the assembler code for the switch{} code, i can not see any such checks (just one check for the overall function that inlines the switch code ... which is NOT an extra check)
+
+Assembler code for switch starts:
+  https://github.com/redhug1/log.go/blob/8f87877b09ee4627b1b198dd8d412e712dcdf3c9/main_assembler/main.asm#L4997 
+
+The Go code for above:
+  https://github.com/redhug1/log.go/blob/8f87877b09ee4627b1b198dd8d412e712dcdf3c9/main_assembler/main.go#L524
+
+Example of assembler code for o.attach(&e)   for eventAuth:
+The assembler code for the function :
+
+	func (l *eventAuth) attach(le *EventData) {
+		le.Auth = l
+	}
+Starts:
+  https://github.com/redhug1/log.go/blob/8f87877b09ee4627b1b198dd8d412e712dcdf3c9/main_assembler/main.asm#L2692
+
+and it makes a call to runtime.morestack_noctxt(SB) at line:
+  https://github.com/redhug1/log.go/blob/8f87877b09ee4627b1b198dd8d412e712dcdf3c9/main_assembler/main.asm#L2731
+
+
+Thus the switch{} code [ from the perspective of high performance server code ] is better than the o.attach(&e) code
+because it grows the stack less and thus minimises calls to "runtime.morestack" which might need to tip the size of the stack
+to be doubled ... it all depends on the call stack depth in the production code.
+
+This is all explained extremely well in the Uber article.
+
+
+& therefore switch{} code should be the preferred choice ...
+
