@@ -5,7 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -361,32 +365,70 @@ func TestLog(t *testing.T) {
 // run with:
 // go test -run=log_test.go -bench=Log -benchtime=100x
 
-/*func BenchmarkLog(b *testing.B) {
+// contextKey is a value for use with context.WithValue. It's used as
+// a pointer so it fits in an interface{} without allocation.
+type contextKey struct {
+	name string
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+//var requestIDRandom = rand.New(rand.NewSource(time.Now().UnixNano()))
+var requestIDRandom = rand.New(rand.NewSource(99)) // seed with constant to get same sequence out output for every benchmar run
+var randMutex sync.Mutex
+
+// NewRequestID generates a random string of requested length
+func newRequestID(size int) string {
+	b := make([]rune, size)
+	randMutex.Lock()
+	for i := range b {
+		b[i] = letters[requestIDRandom.Intn(len(letters))]
+	}
+	randMutex.Unlock()
+	return string(b)
+}
+
+func BenchmarkLog1(b *testing.B) {
+	b.ReportAllocs()
 	fmt.Println("Benchmarking: 'Log'")
-	ctx := context.Background()
-	errToLog := errors.New("test error")
-	message1 := "m1"
-	data1 := "d1"
-	data2 := "d2"
-	data3 := "d3"
-	data4 := "d4"
-	req, err := http.NewRequest("GET", "https://httpbin.org/get", nil)
+	//errToLog := errors.New("test error")
+	//message1 := "Benchmark test"
+	//data1 := "d1"
+	//data2 := "d2"
+	//data3 := "d3"
+	//data4 := "d4"
+	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("req: %v\n", req)
+	//	fmt.Printf("req: %v\n", req)
 
+	requestID := newRequestID(16)
+	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
+	start := time.Now().UTC()
+	end := time.Now().UTC()
+	babbageURL, err := url.Parse("http://localhost:8080")
+
+	// the sequence of these 3 events is about worst case length that dp-frontend-router can do
 	for i := 0; i < b.N; i++ {
-		Event(ctx,
-			message1,
-			INFO,
-			Data{"data_1": data1, "data_2": data2, "data_3": data3, "data_4": data4},
-			Error(errToLog),
-			HTTP(req, 0, 0, nil, nil),
-			Auth(USER, "tester-1"))
+		// 1st Event is like the first one in Middleware()
+		Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
+		// 2nd event is 'similar in length' to one in createReverseProxy()
+		Event(ctx, "proxying request", INFO, HTTP(req, 0, 0, nil, nil),
+			Data{"destination": babbageURL,
+				"proxy_name": "babbage"})
+		/*		Event(ctx,
+				message1,
+				INFO,
+				Data{"data_1": data1, "data_2": data2, "data_3": data3, "data_4": data4},
+				//Error(errToLog),
+				HTTP(req, 0, 0, nil, nil),
+				Auth(USER, "tester-1"))*/
+		// 3rd Event is like the second one in Middleware()
+		Event(req.Context(), "http request completed", HTTP(req, 200, 4, &start, &end))
 	}
-}*/
+}
 
 // run with:
 // go test -run=log_test.go -bench=. -benchtime=1000000000x
@@ -472,8 +514,12 @@ func BenchmarkLog3(b *testing.B) {
 			switch v := o.(type) {
 			case severity:
 				e.Severity = &v
+			case *severity: // added to match o.attach(e) code for completness (may never be used)
+				e.Severity = v
 			case Data:
 				e.Data = &v
+			case *Data: // added to match o.attach(e) code for completness (may never be used)
+				e.Data = v
 			case *EventHTTP:
 				e.HTTP = v
 			case *EventError:
@@ -487,4 +533,3 @@ func BenchmarkLog3(b *testing.B) {
 		}
 	}
 }
-

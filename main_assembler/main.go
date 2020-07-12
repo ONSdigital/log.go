@@ -530,8 +530,12 @@ func createEvent(ctx context.Context, event string, opts ...option) *EventData {
 		switch v := o.(type) { // OR do assignments directly ...
 		case severity:
 			e.Severity = &v
+		case *severity: // added to match o.attach(e) code for completness (may never be used)
+			e.Severity = v
 		case Data:
 			e.Data = &v
+		case *Data: // added to match o.attach(e) code for completness (may never be used)
+			e.Data = v
 		case *EventHTTP:
 			e.HTTP = v
 		case *EventError:
