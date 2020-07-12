@@ -133,8 +133,12 @@ func BenchmarkLog3() {
 		switch v := o.(type) {
 		case severity:
 			e.Severity = &v
+		case *severity: // added to match o.attach(e) code for completness (may never be used)
+			e.Severity = v
 		case Data:
 			e.Data = &v
+		case *Data: // added to match o.attach(e) code for completness (may never be used)
+			e.Data = v
 		case *EventHTTP:
 			e.HTTP = v
 		case *EventError:

@@ -1,0 +1,69 @@
+12th July 2020
+
+1.
+
+Re-introduced BenchmarkLog as BenchmarkLog1() and improved it to have the trace_id
+
+Output of one benchmark loop iteration is:
+
+With all fields filled: (1027 chars)
+
+{"created_at":"2020-07-12T14:17:08.326636414Z","namespace":"/tmp/go-build355120080/b001/log.test","event":"Benchmark test","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"auth":{"identity":"tester-1","identity_type":"user"},"data":{"data_1":"d1","data_2":"d2","data_3":"d3","data_4":"d4"},"error":{"error":"test error","stack_trace":[{"file":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log_test.go","line":414,"function":"github.com/ONSdigital/log.go/log.BenchmarkLog1"},{"file":"/usr/local/go/src/testing/benchmark.go","line":191,"function":"testing.(*B).runN"},{"file":"/usr/local/go/src/testing/benchmark.go","line":321,"function":"testing.(*B).launch"},{"file":"/usr/local/go/src/runtime/asm_amd64.s","line":1373,"function":"runtime.goexit"}],"data":{}}}
+
+
+Without Error: (546 chars)
+
+{"created_at":"2020-07-12T14:20:42.051331146Z","namespace":"/tmp/go-build468832792/b001/log.test","event":"Benchmark test","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"auth":{"identity":"tester-1","identity_type":"user"},"data":{"data_1":"d1","data_2":"d2","data_3":"d3","data_4":"d4"}}
+
+-=-
+
+Run the benchmark in a terminal with:
+
+    go test -run=log_test.go -bench=Log1 -memprofile=mem0.out
+
+produces an output of:
+
+    12724	    103233 ns/op	    4547 B/op	      38 allocs/op
+
+to look into the result file:
+
+    go tool pprof --alloc_space log.test mem0.out
+
+enter command:
+
+    top30
+
+produces:
+
+Showing nodes accounting for 90.56MB, 100% of 90.56MB total
+      flat  flat%   sum%        cum   cum%
+   23.03MB 25.43% 25.43%    31.53MB 34.81%  encoding/json.Marshal
+   23.03MB 25.43% 50.85%    23.03MB 25.43%  github.com/ONSdigital/log.go/log.print
+   15.50MB 17.12% 67.97%    15.50MB 17.12%  github.com/ONSdigital/log.go/log.Error
+   10.50MB 11.60% 79.57%    90.56MB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog1
+       4MB  4.42% 83.99%        4MB  4.42%  github.com/ONSdigital/log.go/log.createEvent
+       3MB  3.31% 87.30%        3MB  3.31%  github.com/ONSdigital/log.go/log.HTTP
+       3MB  3.31% 90.61%        3MB  3.31%  reflect.mapiterinit
+    2.50MB  2.76% 93.37%    34.03MB 37.57%  github.com/ONSdigital/log.go/log.styleForMachine
+       2MB  2.21% 95.58%     8.50MB  9.39%  encoding/json.mapEncoder.encode
+    1.50MB  1.66% 97.24%     5.50MB  6.07%  reflect.Value.MapKeys
+       1MB  1.10% 98.34%        1MB  1.10%  internal/reflectlite.Swapper
+       1MB  1.10% 99.45%        1MB  1.10%  reflect.copyVal
+    0.50MB  0.55%   100%     0.50MB  0.55%  github.com/ONSdigital/log.go/log.Auth (inline)
+         0     0%   100%     8.50MB  9.39%  encoding/json.(*encodeState).marshal
+         0     0%   100%     8.50MB  9.39%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%     8.50MB  9.39%  encoding/json.ptrEncoder.encode
+         0     0%   100%     8.50MB  9.39%  encoding/json.structEncoder.encode
+         0     0%   100%    61.05MB 67.42%  github.com/ONSdigital/log.go/log.Event (inline)
+         0     0%   100%    61.05MB 67.42%  github.com/ONSdigital/log.go/log.eventWithoutOptionsCheck
+         0     0%   100%        1MB  1.10%  sort.Slice
+         0     0%   100%    90.56MB   100%  testing.(*B).launch
+         0     0%   100%    90.56MB   100%  testing.(*B).runN
+(pprof)
+
+-=-
+
+To get out of pprof, type:
+
+    exit
+
