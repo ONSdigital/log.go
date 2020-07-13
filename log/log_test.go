@@ -312,13 +312,13 @@ func TestLog(t *testing.T) {
 			So(calledOpts[1], ShouldHaveSameTypeAs, Data{})
 			d := calledOpts[1].(Data)
 			So(d, ShouldContainKey, "event_data")
-			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
+			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
 		})
 
 		Convey("panic if running in test mode", func() {
 			So(func() {
 				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, opts ...option) {}}, []byte("test"), errors.New("test"))
-			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
+			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
 		})
 
 	})
@@ -327,14 +327,14 @@ func TestLog(t *testing.T) {
 		b := styleForMachine(nil, EventData{}, eventFunc{nil})
 		// note: it's possible that json.Marshal won't always output the fields
 		// 		 in the same order - can't think of a great solution atm
-		So(string(b), ShouldResemble, "{\"created_at\":\"0001-01-01T00:00:00Z\",\"namespace\":\"\",\"event\":\"\"}")
+		So(string(b), ShouldResemble, "{\"created_at\":\"0001-01-01T00:00:00Z\",\"namespace\":\"\",\"event\":\"\"}\n")
 	})
 
 	Convey("styleForHuman outputs pretty printed JSON format", t, func() {
 		b := styleForHuman(nil, EventData{}, eventFunc{nil})
 		// note: it's possible that json.Marshal won't always output the fields
 		// 		 in the same order - can't think of a great solution atm
-		So(string(b), ShouldResemble, "{\n  \"created_at\": \"0001-01-01T00:00:00Z\",\n  \"event\": \"\",\n  \"namespace\": \"\"\n}")
+		So(string(b), ShouldResemble, "{\n  \"created_at\": \"0001-01-01T00:00:00Z\",\n  \"event\": \"\",\n  \"namespace\": \"\"\n}\n")
 	})
 
 	Convey("eventWithoutOptionsCheck calls print with the output of the selected styler", t, func() {
@@ -358,7 +358,7 @@ func TestLog(t *testing.T) {
 
 		eventWithoutOptionsCheck(nil, "test")
 
-		So(string(bytesWritten), ShouldResemble, "styled output\n")
+		So(string(bytesWritten), ShouldResemble, "styled output")
 	})
 }
 
@@ -391,42 +391,30 @@ func newRequestID(size int) string {
 func BenchmarkLog1(b *testing.B) {
 	b.ReportAllocs()
 	fmt.Println("Benchmarking: 'Log'")
-	//errToLog := errors.New("test error")
-	//message1 := "Benchmark test"
-	//data1 := "d1"
-	//data2 := "d2"
-	//data3 := "d3"
-	//data4 := "d4"
+	errToLog := errors.New("test error")
+	message1 := "Benchmark test"
+	data1 := "d1"
+	data2 := "d2"
+	data3 := "d3"
+	data4 := "d4"
 	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	//	fmt.Printf("req: %v\n", req)
+	fmt.Printf("req: %v\n", req)
 
 	requestID := newRequestID(16)
 	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
-	start := time.Now().UTC()
-	end := time.Now().UTC()
-	babbageURL, err := url.Parse("http://localhost:8080")
 
-	// the sequence of these 3 events is about worst case length that dp-frontend-router can do
 	for i := 0; i < b.N; i++ {
-		// 1st Event is like the first one in Middleware()
-		Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
-		// 2nd event is 'similar in length' to one in createReverseProxy()
-		Event(ctx, "proxying request", INFO, HTTP(req, 0, 0, nil, nil),
-			Data{"destination": babbageURL,
-				"proxy_name": "babbage"})
-		/*		Event(ctx,
-				message1,
-				INFO,
-				Data{"data_1": data1, "data_2": data2, "data_3": data3, "data_4": data4},
-				//Error(errToLog),
-				HTTP(req, 0, 0, nil, nil),
-				Auth(USER, "tester-1"))*/
-		// 3rd Event is like the second one in Middleware()
-		Event(req.Context(), "http request completed", HTTP(req, 200, 4, &start, &end))
+		Event(ctx,
+			message1,
+			INFO,
+			Data{"data_1": data1, "data_2": data2, "data_3": data3, "data_4": data4},
+			Error(errToLog),
+			HTTP(req, 0, 0, nil, nil),
+			Auth(USER, "tester-1"))
 	}
 }
 
@@ -531,5 +519,35 @@ func BenchmarkLog3(b *testing.B) {
 				panic("unknown option")
 			}
 		}
+	}
+}
+
+func BenchmarkLog4(b *testing.B) {
+	fmt.Println("Benchmarking: 'Log'")
+	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	requestID := newRequestID(16)
+	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
+	start := time.Now().UTC()
+	end := time.Now().UTC()
+	babbageURL, err := url.Parse("http://localhost:8080")
+
+	b.ReportAllocs()
+	// The sequence of these 3 events is about worst case length that dp-frontend-router can do
+	for i := 0; i < b.N; i++ {
+		// 1st Event is like the first one in Middleware()
+		Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
+
+		// 2nd event is 'similar in length' to one in createReverseProxy()
+		Event(ctx, "proxying request", INFO, HTTP(req, 0, 0, nil, nil),
+			Data{"destination": babbageURL,
+				"proxy_name": "babbage"})
+
+		// 3rd Event is like the second one in Middleware()
+		Event(req.Context(), "http request completed", HTTP(req, 200, 4, &start, &end))
 	}
 }

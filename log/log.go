@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-	"unsafe"
 
 	"github.com/ONSdigital/go-ns/common"
 	prettyjson "github.com/hokaccha/go-prettyjson"
@@ -134,7 +133,6 @@ type EventData struct {
 
 	// Optional fields
 	TraceID  string    `json:"trace_id,omitempty"`
-	SpanID   string    `json:"span_id,omitempty"`
 	Severity *severity `json:"severity,omitempty"`
 
 	// Optional nested data
@@ -185,33 +183,8 @@ func createEvent(ctx context.Context, event string, opts ...option) *EventData {
 
 	// loop around each log option and call its attach method, which takes care
 	// of the association with the EventData struct
-	/*	for _, o := range opts {
-		o.attach(&e)
-	}*/
-
-	// loop around each log option and attach each option
-	// directly into EventData struct
 	for _, o := range opts {
-		// Doing typical pattern : `object.attach(thing)`
-		switch v := o.(type) {
-		case severity:
-			e.Severity = &v
-		case *severity: // added to match o.attach(e) code for completness (may never be used)
-			e.Severity = v
-		case Data:
-			e.Data = &v
-		case *Data: // added to match o.attach(e) code for completness (may never be used)
-			e.Data = v
-		case *EventHTTP:
-			e.HTTP = v
-		case *EventError:
-			e.Error = v
-		case *eventAuth:
-			e.Auth = v
-		default:
-			fmt.Printf("option: %v, %v, %T", o, v, v)
-			panic("unknown option")
-		}
+		o.attach(&e)
 	}
 
 	return &e
@@ -246,11 +219,13 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 	return b
 }
 
-//var jsonData []byte
-
 // styleForMachine renders the event data in JSONLine format
 func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
 	b, err := json.Marshal(e)
+	// Add 'new line' for the 'destination.Write' later on to supply a whole line
+	// and not say two separate writes of this 'b' and then a second write of
+	// the 'new line' because doing so breaks the test that looks for "styled output"
+	b = append(b, 10) // this does not appear to produce an additional 'alloc'
 
 	return handleStyleError(ctx, e, ef, b, err)
 }
@@ -258,26 +233,23 @@ func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
 // styleForHuman renders the event data in a human readable format
 func styleForHuman(ctx context.Context, e EventData, ef eventFunc) []byte {
 	b, err := prettyjson.Marshal(e)
+	b = append(b, 10)
 
 	return handleStyleError(ctx, e, ef, b, err)
 }
 
-func BytesToString(b []byte) string {
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	sh := reflect.StringHeader{bh.Data, bh.Len}
-	return *(*string)(unsafe.Pointer(&sh))
-}
+var crByte []byte = []byte{'\n'} // carriage return
 
 func print(b []byte) {
-	if len(b) == 0 {
+	length := len(b) // only get the length once
+	if length == 0 {
 		return
 	}
 
-	str1 := BytesToString(b)
 	// try and write to stdout
-	if n, err := fmt.Fprintln(destination, str1); n != len(b)+1 || err != nil {
+	if n, err := destination.Write(b); n != length || err != nil {
 		// if that fails, try and write to stderr
-		if n, err := fmt.Fprintln(fallbackDestination, str1); n != len(b)+1 || err != nil {
+		if n, err := fallbackDestination.Write(b); n != length || err != nil {
 			// if that fails, panic!
 			//
 			// also defer an os.Exit since the panic might be captured in a recover
