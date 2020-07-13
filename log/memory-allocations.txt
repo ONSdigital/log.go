@@ -67,3 +67,36 @@ To get out of pprof, type:
 
     exit
 
+-=-=-
+
+13th July 2020
+
+Improving memory allocation doing direct io.Write() to save the memory allocated in converting from a []byte to string.
+
+In log.go print() has a little re-write and it has been tested with the tests and a new Benchmark : BenchmarkLog4 in log_test.go
+
+BenchmarkLog4 creates 3 Events that are very similar to the ones that are on the HOT PATH for every request that
+dp-frontend-router receives.
+The length of the request URL has been chossen for its maximum length as found in the cfg for dp-frontend-router.
+
+For ALL 3 events - BenchmarkLog4:
+
+  with original code shows (approx'): 5771 bytes allocated over 45 allocations
+
+  with new code shows (approx'): (4021 to 4055) bytes allocated over 39 allocations
+
+Thats a saving of just over 29% in memory allocated which is a nice reduction in pressure on the garbage collector
+over 1000's of requests per second.
+
+-=-=-
+
+Had to tweak the TestLog() to cope with the way carriage return is added to the result of Marshal.
+
+-=-=-
+
+In all of the ONS repo's the log EventData field : SpanID is not used, so removing this and further adjusting the TestLog()
+reduced the number of bytes allocated to : (3926 to 3957) over 39 allocations. Almost another 100 bytes ...
+probably due to the size of the allocation falling below some number that is a power of 2
+
+This increases the saving to approx': 31%
+
