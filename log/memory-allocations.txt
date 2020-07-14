@@ -100,3 +100,94 @@ probably due to the size of the allocation falling below some number that is a p
 
 This increases the saving to approx': 31%
 
+The output from one iteration of BenchmarkLog4() for this change is:
+
+{"created_at":"2020-07-13T16:57:02.625278996Z","namespace":"/tmp/go-build936354334/b001/log.test","event":"http request received","trace_id":"CkeeltJJFsQYykrr","http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:57:01.346817962Z"}}
+{"created_at":"2020-07-13T16:57:02.625296777Z","namespace":"/tmp/go-build936354334/b001/log.test","event":"proxying request","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+{"created_at":"2020-07-13T16:57:02.625320366Z","namespace":"/tmp/go-build936354334/b001/log.test","event":"http request completed","http":{"status_code":200,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:57:01.346817962Z","ended_at":"2020-07-13T16:57:01.346818943Z","duration":981,"response_content_length":4}}
+
+-=-=-
+
+Temporarily changing : styleForMachine()  to:
+
+func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
+	err := json.NewEncoder(destination).Encode(e)
+
+	var b []byte = []byte{0} // /this line, just to get code to compile
+
+	return handleStyleError(ctx, e, ef, b, err)
+}
+
+and commenting out the code in the print() function ...
+
+to directly encode to the output, reduces the bytes allocated to:
+
+   2251
+
+which saves another ~ : 1675 bytes   which as a total percentage saving from the starting point is
+
+2251 / 5771 = 0.39%     which is a saving of 61%  ... thats looking very good.
+
+The memory saving is achieved by virtue of the way "json.Marshal()" works internally ... it returns its result by copying
+the marshal'd result from its internal sync.Pool into a newly allocated return array.
+Using the json.NewEncoder() does not do this allocation for the returned array (because there isn't one).
+
+This temporary change does break a lot of the tests. They would need re-writting, together with other parts of the code
+to utilise this optimisation.
+
+The output from one iteration of BenchmarkLog4() for this change is:
+
+{"created_at":"2020-07-13T16:54:23.169678416Z","namespace":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log.test","event":"http request received","trace_id":"CkeeltJJFsQYykrr","http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:54:22.042497738Z"}}
+{"created_at":"2020-07-13T16:54:23.169695818Z","namespace":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log.test","event":"proxying request","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+{"created_at":"2020-07-13T16:54:23.169717016Z","namespace":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log.test","event":"http request completed","http":{"status_code":200,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:54:22.042497738Z","ended_at":"2020-07-13T16:54:22.042498136Z","duration":398,"response_content_length":4}}
+
+
+In the above, the namespace has changed (not sure why) ... hmmm
+
+-=-=-
+
+To further optimise the code with a view to achieving ZERO allocations, a MAJOR rewrite of the log.go function Event()
+would be needed.
+
+To achieve this, 'escape analysis' is needed to see what allocations escape to the HEAP.
+
+Within the log folder, use the following to get a list of the lines that need considering:
+
+    go build -gcflags='-m -m' log.go severity.go data.go error.go auth.go http.go
+
+which produces over 400 lines of 'challenging' output ...
+
+Game on ...
+
+-=-=-
+
+14th July 2020
+
+Stage 1:
+
+The previous temporary changes have been cleaned out.
+
+To implement first part of optimisation a new feature flag has been added to make testing and benchmarking easy.
+For production code this could be changed to an environment variable.
+
+The flag is called "minimumAllocs".
+
+When this flag is used, the function Event() in log.go uses inlined code.
+
+BenchmarkLog4() runs the new code, with command: go test -run=log_test.go -bench=Log4 -memprofile=mem0.out
+
+BenchmarkLog5() runs the original code, with command: go test -run=log_test.go -bench=Log5 -memprofile=mem0.out
+
+The outputs look nominally the same apart from the time stamp.
+
+The new code allocates 1889 bytes over 33 allocations in 1.572 seconds.
+
+The original code allocates 5578 bytes over 45 allocations in 1.659 seconds
+
+1889 / 5578 = 0.34% which is a saving of 66%   ... and the new code generates (when adjusted for time) almost 50% more events.
+
+BenchmarkLog1() is to test all events with original code.
+
+BenchmarkLog6() is to test all events with new code.
+
+-=-=-

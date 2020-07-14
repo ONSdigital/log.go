@@ -25,6 +25,7 @@ var destination io.Writer = os.Stdout
 var fallbackDestination io.Writer = os.Stderr
 
 var isTestMode bool
+var isMinimalAllocations bool
 
 var eventWithOptionsCheckFunc = &eventFunc{eventWithOptionsCheck}
 var eventWithoutOptionsCheckFunc = &eventFunc{eventWithoutOptionsCheck}
@@ -68,10 +69,84 @@ var styleForMachineFunc = &styleFunc{styleForMachine}
 //     // data.a = 2
 //
 func Event(ctx context.Context, event string, opts ...option) {
-	eventFuncInst.f(ctx, event, opts...)
+	if isMinimalAllocations == false {
+		eventFuncInst.f(ctx, event, opts...)
+		return
+	}
+
+	//fmt.Fprintln(destination, "SPEEEEED ...")
+	e := EventData2{
+		CreatedAt: time.Now().UTC(),
+		Namespace: Namespace,
+		Event:     event,
+	}
+
+	if ctx != nil {
+		e.TraceID = common.GetRequestId(ctx)
+	}
+
+	// loop around each log option and attach each option
+	// directly into EventData2 struct
+	for _, o := range opts {
+		// Doing typical pattern : `object.attach(thing)`
+		switch v := o.(type) {
+		case severity:
+			e.Severity = &v
+		case *severity: // added to match o.attach(e) code for completness (may never be used)
+			e.Severity = v
+		case Data:
+			e.Data = &v
+		case *Data: // added to match o.attach(e) code for completness (may never be used)
+			e.Data = v
+		case *EventHTTP:
+			e.HTTP = v
+		case *EventError:
+			e.Error = v
+		case *eventAuth:
+			e.Auth = v
+		default:
+			fmt.Printf("option: %v, %v, %T", o, v, v)
+			panic("unknown option")
+		}
+	}
+
+	//	b, err := json.Marshal(e)
+	// Add 'new line' for the 'destination.Write' later on to supply a whole line
+	// and not say two separate writes of this 'b' and then a second write of
+	// the 'new line' because doing so breaks the test that looks for "styled output"
+	//	b = append(b, 10) // this does not appear to produce an additional 'alloc'
+
+	err := json.NewEncoder(destination).Encode(e)
+
+	if err != nil {
+		// marshalling failed, so we'll log a marshalling error and use Sprintf
+		// to get some kind of text representation of the log data
+		//
+		// other than out of memory errors, marshalling can only fail for an unsupported type
+		// e.g. using log.Data and passing in an io.Reader
+		//
+		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
+		//
+		// note: Error(err) currently ignores this constraint, but it's expected that the `err`
+		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
+		//       which don't marshal any non-marshallable types anyway
+		eventWithoutOptionsCheckFunc.f(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
+
+		// if we're in test mode, we'll also panic to cause tests to fail
+		if isTestMode {
+			// don't capture and reuse fmt.Sprintf output above for this, since that adds
+			// a performance/memory overhead, and reuse is only required in test mode
+			panic("error marshalling event data: " + fmt.Sprintf("%+v", e))
+		}
+	}
 }
 
+// this is called before main()
 func initEvent() *eventFunc {
+	if flag.Lookup("minimumAllocs") != nil {
+		isMinimalAllocations = true
+	}
+
 	// If we're in test mode, replace the Event function with one
 	// that has additional checks to find repeated event option types
 	//
@@ -90,6 +165,7 @@ func initEvent() *eventFunc {
 	return eventWithoutOptionsCheckFunc
 }
 
+// this is called before main()
 var styler = initStyler()
 
 func initStyler() *styleFunc {
@@ -126,6 +202,27 @@ type option interface {
 // It isn't very useful to export, other than for documenting the
 // data structure it outputs.
 type EventData struct {
+	// Required fields
+	CreatedAt time.Time `json:"created_at"`
+	Namespace string    `json:"namespace"`
+	Event     string    `json:"event"`
+
+	// Optional fields
+	TraceID  string    `json:"trace_id,omitempty"`
+	SpanID   string    `json:"span_id,omitempty"`
+	Severity *severity `json:"severity,omitempty"`
+
+	// Optional nested data
+	HTTP *EventHTTP `json:"http,omitempty"`
+	Auth *eventAuth `json:"auth,omitempty"`
+	Data *Data      `json:"data,omitempty"`
+
+	// Error data
+	Error *EventError `json:"error,omitempty"`
+}
+
+// this version of 'EventData' has "SpanID" removed to reduce memory allocation in the HOT-PATH
+type EventData2 struct {
 	// Required fields
 	CreatedAt time.Time `json:"created_at"`
 	Namespace string    `json:"namespace"`
@@ -222,10 +319,6 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 // styleForMachine renders the event data in JSONLine format
 func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
 	b, err := json.Marshal(e)
-	// Add 'new line' for the 'destination.Write' later on to supply a whole line
-	// and not say two separate writes of this 'b' and then a second write of
-	// the 'new line' because doing so breaks the test that looks for "styled output"
-	b = append(b, 10) // this does not appear to produce an additional 'alloc'
 
 	return handleStyleError(ctx, e, ef, b, err)
 }
@@ -233,23 +326,19 @@ func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
 // styleForHuman renders the event data in a human readable format
 func styleForHuman(ctx context.Context, e EventData, ef eventFunc) []byte {
 	b, err := prettyjson.Marshal(e)
-	b = append(b, 10)
 
 	return handleStyleError(ctx, e, ef, b, err)
 }
 
-var crByte []byte = []byte{'\n'} // carriage return
-
 func print(b []byte) {
-	length := len(b) // only get the length once
-	if length == 0 {
+	if len(b) == 0 {
 		return
 	}
 
 	// try and write to stdout
-	if n, err := destination.Write(b); n != length || err != nil {
+	if n, err := fmt.Fprintln(destination, string(b)); n != len(b)+1 || err != nil {
 		// if that fails, try and write to stderr
-		if n, err := fallbackDestination.Write(b); n != length || err != nil {
+		if n, err := fmt.Fprintln(fallbackDestination, string(b)); n != len(b)+1 || err != nil {
 			// if that fails, panic!
 			//
 			// also defer an os.Exit since the panic might be captured in a recover
