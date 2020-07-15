@@ -1,6 +1,7 @@
 package log
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/ONSdigital/go-ns/common"
@@ -33,6 +35,103 @@ var eventFuncInst = initEvent()
 
 var styleForHumanFunc = &styleFunc{styleForHuman}
 var styleForMachineFunc = &styleFunc{styleForMachine}
+
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return &bytes.Buffer{} // this is the same as return new(bytes.Buffer)
+	},
+}
+
+func expandIntToBuf2(buf *bytes.Buffer, value int) {
+	c1 := byte((value % 10) + '0')
+	c2 := byte(((value / 10) % 10) + '0')
+	buf.WriteByte(c2)
+	buf.WriteByte(c1)
+}
+
+func expandIntToBuf4(buf *bytes.Buffer, value int) {
+	c1 := byte((value % 10) + '0')
+	value = value / 10
+	c2 := byte((value % 10) + '0')
+	value = value / 10
+	c3 := byte((value % 10) + '0')
+	value = value / 10
+	c4 := byte((value % 10) + '0')
+	buf.WriteByte(c4)
+	buf.WriteByte(c3)
+	buf.WriteByte(c2)
+	buf.WriteByte(c1)
+}
+
+func expandIntToBuf9(buf *bytes.Buffer, value int) {
+	c1 := byte((value % 10) + '0')
+	value = value / 10
+	c2 := byte((value % 10) + '0')
+	value = value / 10
+	c3 := byte((value % 10) + '0')
+	value = value / 10
+	c4 := byte((value % 10) + '0')
+	value = value / 10
+	c5 := byte((value % 10) + '0')
+	value = value / 10
+	c6 := byte((value % 10) + '0')
+	value = value / 10
+	c7 := byte((value % 10) + '0')
+	value = value / 10
+	c8 := byte((value % 10) + '0')
+	value = value / 10
+	c9 := byte((value % 10) + '0')
+	buf.WriteByte(c9)
+	buf.WriteByte(c8)
+	buf.WriteByte(c7)
+	buf.WriteByte(c6)
+	buf.WriteByte(c5)
+	buf.WriteByte(c4)
+	buf.WriteByte(c3)
+	buf.WriteByte(c2)
+	buf.WriteByte(c1)
+	buf.WriteByte('Z')
+}
+
+func expandTimeToBuf(buf *bytes.Buffer, value time.Time) {
+	expandIntToBuf4(buf, value.Year())
+	buf.WriteByte('-')
+	expandIntToBuf2(buf, int(value.Month()))
+	buf.WriteByte('-')
+	expandIntToBuf2(buf, int(value.Day()))
+	buf.WriteByte('T')
+	expandIntToBuf2(buf, int(value.Hour()))
+	buf.WriteByte(':')
+	expandIntToBuf2(buf, int(value.Minute()))
+	buf.WriteByte(':')
+	expandIntToBuf2(buf, int(value.Second()))
+	buf.WriteByte('.')
+	expandIntToBuf9(buf, int(value.Nanosecond()))
+}
+
+//!!! expand HTTP struct
+func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
+	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
+	//buf.WriteString("HHHTTTTTTPPP")
+}
+
+//!!! expand Auth struct
+func expandAuthToBuf(buf *bytes.Buffer, value *eventAuth) {
+	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
+	//buf.WriteString("AUUUUth")
+}
+
+//!!! expand Data struct
+func expandDataToBuf(buf *bytes.Buffer, value *Data) {
+	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
+	//buf.WriteString("Daaata")
+}
+
+//!!! expand Error struct
+func expandErrorToBuf(buf *bytes.Buffer, value *EventError) {
+	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
+	//buf.WriteString("Errooooor")
+}
 
 // Event logs an event, to STDOUT if possible, or STDERR if not.
 //
@@ -110,15 +209,161 @@ func Event(ctx context.Context, event string, opts ...option) {
 		}
 	}
 
-	//	b, err := json.Marshal(e)
-	// Add 'new line' for the 'destination.Write' later on to supply a whole line
-	// and not say two separate writes of this 'b' and then a second write of
-	// the 'new line' because doing so breaks the test that looks for "styled output"
-	//	b = append(b, 10) // this does not appear to produce an additional 'alloc'
+	//fmt.Fprintf(destination, "%+v\n", e)
 
-	err := json.NewEncoder(destination).Encode(e)
+	//var err error = nil
 
-	if err != nil {
+	//err := json.NewEncoder(destination).Encode(e)
+
+	// The following is an 'inline' unrolling of:
+	//    err := json.NewEncoder(destination).Encode(e)
+	// to eliminate  allocations leaking to the HEAP by using a
+	// sync.Pool bytes.Buffer
+
+	var somethingWritten bool
+
+	buf := bufPool.Get().(*bytes.Buffer) // with casting on the end
+	buf.Reset()                          // Must reset before each block of usage
+
+	buf.WriteByte('{')
+	if !e.CreatedAt.IsZero() {
+		somethingWritten = true
+		buf.WriteByte('"')
+		buf.WriteString("created at")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		expandTimeToBuf(buf, e.CreatedAt)
+		buf.WriteByte('"')
+	}
+
+	if e.Namespace != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("namespace")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(e.Namespace)
+		buf.WriteByte('"')
+	}
+
+	if e.Event != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("event")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(e.Event)
+		buf.WriteByte('"')
+	}
+
+	if e.TraceID != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("trace_id")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(e.TraceID)
+		buf.WriteByte('"')
+	}
+
+	if e.Severity != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("severity")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(strconv.Itoa(int(*e.Severity)))
+		buf.WriteByte('"')
+	}
+
+	if e.HTTP != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("http")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		//buf.WriteByte('{')
+		expandHTTPToBuf(buf, e.HTTP)
+		//buf.WriteByte('}')
+	}
+
+	//!!! run benchmark 6 to see this
+	if e.Auth != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("auth")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		//buf.WriteByte('{')
+		expandAuthToBuf(buf, e.Auth)
+		//buf.WriteByte('}')
+	}
+
+	if e.Data != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("data")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		//buf.WriteByte('{')
+		expandDataToBuf(buf, e.Data)
+		//buf.WriteByte('}')
+	}
+
+	//!!! run benchmark 6 to see this
+	if e.Error != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		buf.WriteByte('"')
+		buf.WriteString("error")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		//buf.WriteByte('{')
+		expandErrorToBuf(buf, e.Error)
+		//buf.WriteByte('}')
+	}
+
+	buf.WriteByte('}')
+	buf.WriteByte(10)
+
+	buf.WriteTo(destination)
+	bufPool.Put(buf)
+
+	/*	if err != nil {
 		// marshalling failed, so we'll log a marshalling error and use Sprintf
 		// to get some kind of text representation of the log data
 		//
@@ -138,7 +383,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 			// a performance/memory overhead, and reuse is only required in test mode
 			panic("error marshalling event data: " + fmt.Sprintf("%+v", e))
 		}
-	}
+	}*/
 }
 
 // this is called before main()
@@ -221,7 +466,7 @@ type EventData struct {
 	Error *EventError `json:"error,omitempty"`
 }
 
-// this version of 'EventData' has "SpanID" removed to reduce memory allocation in the HOT-PATH
+// EventData2 - this version of 'EventData' has "SpanID" removed to reduce memory allocation in the HOT-PATH
 type EventData2 struct {
 	// Required fields
 	CreatedAt time.Time `json:"created_at"`
@@ -335,6 +580,7 @@ func print(b []byte) {
 		return
 	}
 
+	//	b = append(b, 55) // used to break test, just to check that test is working
 	// try and write to stdout
 	if n, err := fmt.Fprintln(destination, string(b)); n != len(b)+1 || err != nil {
 		// if that fails, try and write to stderr

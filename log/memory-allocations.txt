@@ -191,3 +191,148 @@ BenchmarkLog1() is to test all events with original code.
 BenchmarkLog6() is to test all events with new code.
 
 -=-=-
+
+To run the tests:
+
+go test -count=1 ./...
+
+where the "-count=1" is to avoid cached tests
+
+-=-=-
+
+15th July 2020
+
+Stage 2:
+
+Escape Analysis shows that the EventHTTP struct escapes to the HEAP by virtue to the fact that it gets filled with pointers
+to information that is elsewhere on the HEAP.
+And similarly for the eventAuth and EventError struct's.
+
+The log.go package is easy to use, which is a strength, but with a hidden weakness ... how much memory allocations it puts
+to the HEAP.
+
+Overcoming these would only be warranted if there is a need for a high performance dp-frontend-router.
+
+One way then of overcoming these 'SPECIFICALLY' for dp-frontend-router is to to have a new log package where one splits
+out the 3 Event() functions into a sequence of calls to 'helper' functions that write into a sync.Pool of byte.Buffer
+and this is then written to the destination channel in one io.Write action.
+
+This sequence of new functions would replace the specific 3 calls the the Event() function in dp-frontend-router.
+
+This would end up looking something similar to zerolog, but tailored to maintain an output format that matches the
+existing log.go
+
+-=-=-
+
+Doing:
+        go test -run=log_test.go -bench=Log4 -memprofile=mem0.out
+
+and then:
+        go tool pprof --alloc_space log.test mem0.out
+
+and then entering:
+	top30
+
+gives:
+
+Showing nodes accounting for 17410.12kB, 100% of 17410.12kB total
+      flat  flat%   sum%        cum   cum%
+ 5120.57kB 29.41% 29.41%  5120.57kB 29.41%  github.com/ONSdigital/log.go/log.HTTP
+ 3072.84kB 17.65% 47.06% 17410.12kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+ 3072.33kB 17.65% 64.71%  9216.71kB 52.94%  github.com/ONSdigital/log.go/log.Event
+ 2048.09kB 11.76% 76.47%  2048.09kB 11.76%  time.Time.MarshalJSON
+ 1536.14kB  8.82% 85.30%  1536.14kB  8.82%  reflect.mapiterinit
+ 1024.08kB  5.88% 91.18%  4096.29kB 23.53%  encoding/json.mapEncoder.encode
+ 1024.05kB  5.88% 97.06%  2560.19kB 14.71%  reflect.Value.MapKeys
+  512.02kB  2.94%   100%   512.02kB  2.94%  internal/reflectlite.Swapper
+         0     0%   100%  6144.38kB 35.29%  encoding/json.(*Encoder).Encode
+         0     0%   100%  6144.38kB 35.29%  encoding/json.(*encodeState).marshal
+         0     0%   100%  6144.38kB 35.29%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%  1024.05kB  5.88%  encoding/json.condAddrEncoder.encode
+         0     0%   100%  2048.09kB 11.76%  encoding/json.marshalerEncoder
+         0     0%   100%  5120.34kB 29.41%  encoding/json.ptrEncoder.encode
+         0     0%   100%  6144.38kB 35.29%  encoding/json.structEncoder.encode
+         0     0%   100%   512.02kB  2.94%  sort.Slice
+         0     0%   100% 17410.12kB   100%  testing.(*B).launch
+         0     0%   100% 17410.12kB   100%  testing.(*B).runN
+
+-=-=-
+
+The above shows that the encoding seems to be leaking a lot ... hmmm
+
+With the line:
+
+    err := json.NewEncoder(destination).Encode(e)
+
+in the code, the bytes allocated is ~=  1890 for the 3 events.
+
+if this line is replaced with:
+
+    var err error = nil
+
+the bytes allocated comes down to ~= 848 for the 3 events.
+
+So, the encoding i putting onto the HEAP ~= 1890 - 848 ~= 1042 bytes
+
+-=-=-
+
+Replacing the Encode(e) with a simple print:
+
+    fmt.Fprintf(destination, "%+v\n", e)
+
+the bytes allocated is ~= 1544
+
+and the output becomes:
+
+{CreatedAt:2020-07-15 15:02:31.445058464 +0000 UTC Namespace:BenchmarkLog Event:http request received TraceID:CkeeltJJFsQYykrr Severity:<nil> HTTP:0xc000369900 Auth:<nil> Data:<nil> Error:<nil>}
+{CreatedAt:2020-07-15 15:02:31.445066127 +0000 UTC Namespace:BenchmarkLog Event:proxying request TraceID:CkeeltJJFsQYykrr Severity:0xc000370658 HTTP:0xc000369980 Auth:<nil> Data:0xc00019b748 Error:<nil>}
+{CreatedAt:2020-07-15 15:02:31.445072792 +0000 UTC Namespace:BenchmarkLog Event:http request completed TraceID: Severity:<nil> HTTP:0xc000369a00 Auth:<nil> Data:<nil> Error:<nil>}
+
+As comparred to the Encode'd output of:
+
+{"created_at":"2020-07-15T15:07:46.505143999Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"WtxsVMtiiEXEBxDQ","http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-15T15:07:45.306035434Z"}}
+{"created_at":"2020-07-15T15:07:46.505155952Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"WtxsVMtiiEXEBxDQ","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+{"created_at":"2020-07-15T15:07:46.505170204Z","namespace":"BenchmarkLog","event":"http request completed","http":{"status_code":200,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-15T15:07:45.306035434Z","ended_at":"2020-07-15T15:07:45.30603599Z","duration":556,"response_content_length":4}}
+
+-=-=-
+
+As we know what is in all of the struct's, we could pick the items out in a specific order to ALWAYS get the same order as
+comparred to what the json package might do (according to some comments in the existing log.go package).
+
+We would thus inline the 'Encode' function with the advantage of not having to do any 'reflection' to determine the data types.
+
+-=-=-
+
+Inline expansion started (more to do).
+
+Memory allocations on HEAP now down to 1412 over 27 allocations.
+
+Still using BenchmarkLog4():
+
+1412 / 5578 = 0.25% which is a saving of 75%
+
+The pprof top30 is:
+
+Showing nodes accounting for 15361.66kB, 100% of 15361.66kB total
+      flat  flat%   sum%        cum   cum%
+ 4608.91kB 30.00% 30.00% 15361.66kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+ 3584.27kB 23.33% 53.34%  3584.27kB 23.33%  github.com/ONSdigital/log.go/log.HTTP
+ 2560.20kB 16.67% 70.00%  5632.41kB 36.67%  encoding/json.mapEncoder.encode
+ 1536.14kB 10.00% 80.00%  1536.14kB 10.00%  reflect.mapiterinit
+ 1536.07kB 10.00% 90.00%  1536.07kB 10.00%  time.Time.MarshalJSON
+ 1024.05kB  6.67% 96.67%  1024.05kB  6.67%  internal/reflectlite.Swapper
+  512.02kB  3.33%   100%  2048.16kB 13.33%  reflect.Value.MapKeys
+         0     0%   100%  7168.48kB 46.66%  encoding/json.(*Encoder).Encode
+         0     0%   100%  7168.48kB 46.66%  encoding/json.(*encodeState).marshal
+         0     0%   100%  7168.48kB 46.66%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%  1536.07kB 10.00%  encoding/json.marshalerEncoder
+         0     0%   100%  7168.48kB 46.66%  encoding/json.ptrEncoder.encode
+         0     0%   100%  1536.07kB 10.00%  encoding/json.structEncoder.encode
+         0     0%   100%  7168.48kB 46.66%  github.com/ONSdigital/log.go/log.Event
+         0     0%   100%  5632.41kB 36.67%  github.com/ONSdigital/log.go/log.expandDataToBuf (inline)
+         0     0%   100%  1536.07kB 10.00%  github.com/ONSdigital/log.go/log.expandHTTPToBuf (inline)
+         0     0%   100%  1024.05kB  6.67%  sort.Slice
+         0     0%   100% 15361.66kB   100%  testing.(*B).launch
+         0     0%   100% 15361.66kB   100%  testing.(*B).runN
+
+-=-=-
