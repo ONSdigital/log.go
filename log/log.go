@@ -109,28 +109,221 @@ func expandTimeToBuf(buf *bytes.Buffer, value time.Time) {
 	expandIntToBuf9(buf, int(value.Nanosecond()))
 }
 
-//!!! expand HTTP struct
 func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
-	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
-	//buf.WriteString("HHHTTTTTTPPP")
+	// We know what the '*EventHTTP' is, so its contents can be directly
+	// extracted ...
+	buf.WriteByte('"')
+	buf.WriteString("http")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+	buf.WriteByte('{')
+
+	var somethingWritten bool
+	if value.StatusCode != nil {
+		buf.WriteByte('"')
+		buf.WriteString("status_code")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteString(strconv.Itoa(*value.StatusCode)) // !!! need to replace with a func() to write int into 'buf.Buffer' directly
+		somethingWritten = true
+	}
+
+	if value.Method != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("method")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(value.Method)
+		buf.WriteByte('"')
+	}
+
+	if value.Scheme != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("scheme")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(value.Scheme)
+		buf.WriteByte('"')
+	}
+
+	if value.Host != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("host")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(value.Host)
+		buf.WriteByte('"')
+	}
+
+	// port will always have some value ...
+	if somethingWritten {
+		buf.WriteByte(',')
+	} else {
+		somethingWritten = true
+	}
+	buf.WriteByte('"')
+	buf.WriteString("port")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+	buf.WriteString(strconv.Itoa(value.Port)) // !!! need to replace with a func() to write int into 'buf.Buffer' directly
+
+	if value.Path != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("path")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(value.Path)
+		buf.WriteByte('"')
+	}
+
+	if value.Query != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("query")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		buf.WriteString(value.Query)
+		buf.WriteByte('"')
+	}
+
+	if value.StartedAt != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("started_at")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		expandTimeToBuf(buf, *value.StartedAt)
+		buf.WriteByte('"')
+	}
+
+	if value.EndedAt != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("ended_at")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('"')
+		expandTimeToBuf(buf, *value.EndedAt)
+		buf.WriteByte('"')
+	}
+
+	if value.Duration != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("duration")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteString(strconv.FormatInt(int64(*value.Duration), 10)) //!!! need something to achieve zero alloc version of this for number
+	}
+
+	// We can not easily determine if ResponseContentLength has been assigned a value
+	// without doing some sort of reflect which will then create allocs.
+	// But if ResponseContentLength is 0, then there is no point showing it.
+	if value.ResponseContentLength != 0 {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+		buf.WriteByte('"')
+		buf.WriteString("response_content_length")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteString(strconv.FormatInt(int64(value.ResponseContentLength), 10)) //!!! need something to achieve zero alloc version of this for number
+	}
+
+	buf.WriteByte('}')
 }
 
 //!!! expand Auth struct
 func expandAuthToBuf(buf *bytes.Buffer, value *eventAuth) {
-	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
-	//buf.WriteString("AUUUUth")
+	json.NewEncoder(buf).Encode(value)
+	buf.Truncate(buf.Len() - 1) // remove the 'new line', as there is more to append
 }
 
-//!!! expand Data struct
 func expandDataToBuf(buf *bytes.Buffer, value *Data) {
-	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
-	//buf.WriteString("Daaata")
+	// We know what the '*Data' is 'map[string]interface{}'
+	// and we know that the three Event() calls on the HOT-PATH in dp-frontend-router
+	// only pass a string or URL for the value ... so with this prior knowledge ...
+	// to achieve the goal of minimum memory allocations, this function will
+	// decode our 'knowns' in an allocation optimum way.
+	// It will deal with unknowns with an inefficient "json.NewEncoder(buf).Encode(value)"
+	// ... that said, it appears that the Encode does not create any allocations on
+	// the HEAP for the URL (possibly because it has no sub structure structures or
+	// interface{} ?)
+	var somethingWritten bool
+	buf.WriteByte('{')
+	for k, v := range *value {
+		if somethingWritten {
+			buf.WriteByte(',')
+		} else {
+			somethingWritten = true
+		}
+
+		buf.WriteByte('"')
+		buf.WriteString(k) // add the key
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		switch n := v.(type) {
+		case string:
+			buf.WriteByte('"')
+			buf.WriteString(n) // add the 'known' value type of 'string'
+			buf.WriteByte('"')
+		default: // too many other possibilities, so use Encode()
+			// !!! how will this cope with the Error()'s data ...
+			json.NewEncoder(buf).Encode(v)
+			buf.Truncate(buf.Len() - 1) // remove the 'new line', as there is more to append
+		}
+	}
+	buf.WriteByte('}')
 }
 
 //!!! expand Error struct
 func expandErrorToBuf(buf *bytes.Buffer, value *EventError) {
-	json.NewEncoder(buf).Encode(value) //!!! this looks like it is sticking a newline on the end and slightly breaking the output
-	//buf.WriteString("Errooooor")
+	json.NewEncoder(buf).Encode(value)
+	buf.Truncate(buf.Len() - 1) // remove the 'new line', as there is more to append
 }
 
 // Event logs an event, to STDOUT if possible, or STDERR if not.
@@ -217,7 +410,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 
 	// The following is an 'inline' unrolling of:
 	//    err := json.NewEncoder(destination).Encode(e)
-	// to eliminate  allocations leaking to the HEAP by using a
+	// to eliminate allocations leaking to the HEAP by using a
 	// sync.Pool bytes.Buffer
 
 	var somethingWritten bool
@@ -293,7 +486,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		buf.WriteByte('"')
 		buf.WriteByte(':')
 		buf.WriteByte('"')
-		buf.WriteString(strconv.Itoa(int(*e.Severity)))
+		buf.WriteString(strconv.Itoa(int(*e.Severity))) //!!! need something to achieve zero alloc version of this for number
 		buf.WriteByte('"')
 	}
 
@@ -307,9 +500,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		buf.WriteString("http")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		//buf.WriteByte('{')
 		expandHTTPToBuf(buf, e.HTTP)
-		//buf.WriteByte('}')
 	}
 
 	//!!! run benchmark 6 to see this
@@ -338,9 +529,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		buf.WriteString("data")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		//buf.WriteByte('{')
 		expandDataToBuf(buf, e.Data)
-		//buf.WriteByte('}')
 	}
 
 	//!!! run benchmark 6 to see this
@@ -580,7 +769,7 @@ func print(b []byte) {
 		return
 	}
 
-	//	b = append(b, 55) // used to break test, just to check that test is working
+	//	b = append(b, 55) // used to break test, just to check that test is working !!! (remove when memory alllocation optimisation finished)
 	// try and write to stdout
 	if n, err := fmt.Fprintln(destination, string(b)); n != len(b)+1 || err != nil {
 		// if that fails, try and write to stderr

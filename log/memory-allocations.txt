@@ -364,3 +364,26 @@ That's a big change.
 
 -=-=-
 
+Stage 4:
+
+Inline expansion, of function: expandHTTPToBuf()
+
+Memory allocations on HEAP now down to 881 over 19 allocations.
+
+Still using BenchmarkLog4():
+
+881 / 5578 = 0.16% which is a saving of 84%
+
+The pprof top30 is:
+
+Showing nodes accounting for 2560.62kB, 100% of 2560.62kB total
+      flat  flat%   sum%        cum   cum%
+ 2048.56kB 80.00% 80.00%  2560.62kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+  512.06kB 20.00%   100%   512.06kB 20.00%  github.com/ONSdigital/log.go/log.HTTP
+         0     0%   100%  2560.62kB   100%  testing.(*B).launch
+         0     0%   100%  2560.62kB   100%  testing.(*B).runN
+
+(more to do)
+
+-=-=-
+
