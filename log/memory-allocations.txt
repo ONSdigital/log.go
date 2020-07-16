@@ -336,3 +336,31 @@ Showing nodes accounting for 15361.66kB, 100% of 15361.66kB total
          0     0%   100% 15361.66kB   100%  testing.(*B).runN
 
 -=-=-
+
+16th July 2020
+
+Stage 3:
+
+Inline expansion, of function: expandDataToBuf()
+
+Memory allocations on HEAP now down to 994 over 17 allocations.
+
+Still using BenchmarkLog4():
+
+994 / 5578 = 0.18% which is a saving of 82%
+
+The pprof top30 is:
+
+Showing nodes accounting for 7MB, 100% of 7MB total
+      flat  flat%   sum%        cum   cum%
+    4.50MB 64.28% 64.28%     4.50MB 64.28%  github.com/ONSdigital/log.go/log.HTTP
+    2.50MB 35.72%   100%        7MB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+         0     0%   100%        7MB   100%  testing.(*B).launch
+         0     0%   100%        7MB   100%  testing.(*B).runN
+
+That's a big change.
+
+(more to do)
+
+-=-=-
+
