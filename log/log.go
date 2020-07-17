@@ -109,6 +109,60 @@ func expandTimeToBuf(buf *bytes.Buffer, value time.Time) {
 	expandIntToBuf9(buf, int(value.Nanosecond()))
 }
 
+func expandInt(buf *bytes.Buffer, n int) {
+	var out [15]byte
+	var c int
+
+	if n < 0 {
+		n = -n
+		buf.WriteByte('-')
+	}
+	for {
+		out[c] = byte((n % 10) + '0')
+		c++
+		n = n / 10
+		if n == 0 {
+			break
+		}
+	}
+
+	c--
+	for {
+		buf.WriteByte(out[c])
+		if c == 0 {
+			break
+		}
+		c--
+	}
+}
+
+func expandInt64(buf *bytes.Buffer, n int64) {
+	var out [25]byte
+	var c int
+
+	if n < 0 {
+		n = -n
+		buf.WriteByte('-')
+	}
+	for {
+		out[c] = byte((n % 10) + '0')
+		c++
+		n = n / 10
+		if n == 0 {
+			break
+		}
+	}
+
+	c--
+	for {
+		buf.WriteByte(out[c])
+		if c == 0 {
+			break
+		}
+		c--
+	}
+}
+
 func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	// We know what the '*EventHTTP' is, so its contents can be directly
 	// extracted ...
@@ -124,7 +178,7 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		buf.WriteString("status_code")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		buf.WriteString(strconv.Itoa(*value.StatusCode)) // !!! need to replace with a func() to write int into 'buf.Buffer' directly
+		expandInt(buf, *value.StatusCode)
 		somethingWritten = true
 	}
 
@@ -183,7 +237,7 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	buf.WriteString("port")
 	buf.WriteByte('"')
 	buf.WriteByte(':')
-	buf.WriteString(strconv.Itoa(value.Port)) // !!! need to replace with a func() to write int into 'buf.Buffer' directly
+	expandInt(buf, value.Port)
 
 	if value.Path != "" {
 		if somethingWritten {
@@ -255,7 +309,7 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		buf.WriteString("duration")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		buf.WriteString(strconv.FormatInt(int64(*value.Duration), 10)) //!!! need something to achieve zero alloc version of this for number
+		expandInt64(buf, int64(*value.Duration))
 	}
 
 	// We can not easily determine if ResponseContentLength has been assigned a value
@@ -271,7 +325,7 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		buf.WriteString("response_content_length")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		buf.WriteString(strconv.FormatInt(int64(value.ResponseContentLength), 10)) //!!! need something to achieve zero alloc version of this for number
+		expandInt64(buf, int64(value.ResponseContentLength))
 	}
 
 	buf.WriteByte('}')
@@ -293,6 +347,7 @@ func expandDataToBuf(buf *bytes.Buffer, value *Data) {
 	// ... that said, it appears that the Encode does not create any allocations on
 	// the HEAP for the URL (possibly because it has no sub structure structures or
 	// interface{} ?)
+	// ODD'ly: sometimes the 'proxy_name' is output before the 'destination' - go figure ?
 	var somethingWritten bool
 	buf.WriteByte('{')
 	for k, v := range *value {
@@ -312,7 +367,6 @@ func expandDataToBuf(buf *bytes.Buffer, value *Data) {
 			buf.WriteString(n) // add the 'known' value type of 'string'
 			buf.WriteByte('"')
 		default: // too many other possibilities, so use Encode()
-			// !!! how will this cope with the Error()'s data ...
 			json.NewEncoder(buf).Encode(v)
 			buf.Truncate(buf.Len() - 1) // remove the 'new line', as there is more to append
 		}
@@ -486,7 +540,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		buf.WriteByte('"')
 		buf.WriteByte(':')
 		buf.WriteByte('"')
-		buf.WriteString(strconv.Itoa(int(*e.Severity))) //!!! need something to achieve zero alloc version of this for number
+		expandInt(buf, int(*e.Severity))
 		buf.WriteByte('"')
 	}
 
@@ -551,28 +605,6 @@ func Event(ctx context.Context, event string, opts ...option) {
 
 	buf.WriteTo(destination)
 	bufPool.Put(buf)
-
-	/*	if err != nil {
-		// marshalling failed, so we'll log a marshalling error and use Sprintf
-		// to get some kind of text representation of the log data
-		//
-		// other than out of memory errors, marshalling can only fail for an unsupported type
-		// e.g. using log.Data and passing in an io.Reader
-		//
-		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
-		//
-		// note: Error(err) currently ignores this constraint, but it's expected that the `err`
-		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
-		//       which don't marshal any non-marshallable types anyway
-		eventWithoutOptionsCheckFunc.f(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
-
-		// if we're in test mode, we'll also panic to cause tests to fail
-		if isTestMode {
-			// don't capture and reuse fmt.Sprintf output above for this, since that adds
-			// a performance/memory overhead, and reuse is only required in test mode
-			panic("error marshalling event data: " + fmt.Sprintf("%+v", e))
-		}
-	}*/
 }
 
 // this is called before main()
