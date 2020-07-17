@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -651,5 +652,114 @@ func BenchmarkLog6(b *testing.B) {
 			Error(errToLog),
 			HTTP(req, 0, 0, nil, nil),
 			Auth(USER, "tester-1"))
+	}
+}
+
+func BenchmarkLog7(b *testing.B) {
+	fmt.Println("Benchmarking: 'Log'")
+	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
+	//       adds in the the resulting path that is revere proxied to.
+	// SO: The following replicates that so that this test more closely
+	//     matches what is seen in dp-frontend-router.
+	req2 := req
+	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
+	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
+	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
+
+	requestID := newRequestID(16)
+	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
+	start := time.Now().UTC()
+	end := time.Now().UTC()
+	babbageURL, err := url.Parse("http://localhost:8080")
+
+	Namespace = "BenchmarkLog" // force a fixed value as sometimes during testing this changes and does not help when comparing to other tests
+
+	isMinimalAllocations = true // use new Event() code, for minimum memory allocations
+
+	b.ReportAllocs()
+	// The sequence of these 3 events is about worst case length that dp-frontend-router can do
+	for i := 0; i < b.N; i++ {
+		// 1st Event is like the first one in Middleware()
+		var statusCode int = 0
+
+		port := 0
+		if p := req.URL.Port(); len(p) > 0 {
+			port, _ = strconv.Atoi(p)
+		}
+
+		var duration *time.Duration
+
+		// inline the the setting up of the "EventHTTP" to save doing the HTTP(...)
+		// thing as this escapes to the heap, whereas doing the following stays within
+		// the stack of this calling function.
+		e := EventHTTP{
+			StatusCode: &statusCode,
+			Method:     req.Method,
+
+			Scheme: req.URL.Scheme,
+			Host:   req.URL.Hostname(),
+			Port:   port,
+			Path:   req.URL.Path,
+			Query:  req.URL.RawQuery,
+
+			StartedAt:             &start,
+			EndedAt:               nil,
+			Duration:              duration,
+			ResponseContentLength: 0,
+		}
+
+		//Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
+		Event(ctx, "http request received", &e)
+
+		port = 0
+		if p := req2.URL.Port(); len(p) > 0 {
+			port, _ = strconv.Atoi(p)
+		}
+
+		e.Method = req2.Method
+		e.Scheme = req2.URL.Scheme
+		e.Host = req2.URL.Hostname()
+		e.Port = port
+		e.Path = req2.URL.Path
+		e.Query = req2.URL.RawQuery
+		e.StartedAt = nil
+
+		// 2nd event is 'similar in length' to one in createReverseProxy()
+		//		Event(ctx, "proxying request", INFO, HTTP(req2, 0, 0, nil, nil),
+		Event(ctx, "proxying request", INFO, &e,
+			Data{"destination": babbageURL,
+				"proxy_name": "babbage"})
+
+		port = 0
+		if p := req2.URL.Port(); len(p) > 0 {
+			port, _ = strconv.Atoi(p)
+		}
+		port = 20000
+
+		d := end.Sub(start)
+
+		e.Port = port
+		e.StartedAt = &start
+		e.EndedAt = &end
+		e.Duration = &d
+		e.ResponseContentLength = 4
+		statusCode = 200
+
+		e.Method = req2.Method
+		e.Scheme = req2.URL.Scheme
+		e.Host = req2.URL.Hostname()
+		e.Port = port
+		e.Path = req2.URL.Path
+		e.Query = req2.URL.RawQuery
+
+		// 3rd Event is like the second one in Middleware()
+		//		Event(req.Context(), "http request completed", HTTP(req2, 200, 4, &start, &end))
+		Event(req.Context(), "http request completed", &e)
 	}
 }

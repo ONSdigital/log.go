@@ -430,3 +430,112 @@ So, the savings figures change to:
 
 850 / 6866 = 0.124% which is a saving of 87.6%    (thats ~ 6016 bytes saved per request).
 
+-=-=-
+
+Stage 6:
+
+To achieve any further optimisations, things now get messy ...
+
+The log.go makes passing the info to be logged very easy, neat and clean which is good and optimising any further
+risks making easy mistakes in initialising the data to be logged and makes the code less easy to maintain.
+
+So it is probably best to stop at Stage 5 and use the code there.
+
+That said, the following is done just to show the things that can be done to further reduce allocations on the HEAP:
+
+BenchmarkLog7() added which inlines the EventHTTP struct onto the stack of BenchmarkLog7()
+
+BenchmarkLog7() was derived from BenchmarkLog4() and produces the same output, demonstrating that the structures
+are being initialised and adjusted correctly for each of the three Event()'s that are logged.
+
+So if there is ever a need to apply what is done for the savings that these create, hopefully copying the specifics
+of what is done into log's middleware.go and the reverse proxy code in dp-frontend-router ...
+the structures will stay on the stack and not LEAK to the HEAP.
+
+You would have to run your own Benchmarking of the changes to verify that there is a benefit.
+
+The results for Benchmark7() are:
+
+Memory allocations on HEAP now down to 577 over 10 allocations.
+
+577 / 6866 = 0.084% which is a saving of 91.6%
+
+The pprof top30 is:
+
+Showing nodes accounting for 7MB, 100% of 7MB total
+      flat  flat%   sum%        cum   cum%
+       7MB   100%   100%        7MB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog7
+         0     0%   100%        7MB   100%  testing.(*B).launch
+         0     0%   100%        7MB   100%  testing.(*B).runN
+
+-=-=-
+
+In pprov, entering: list BenchmarkLog7 produces:
+
+    5.50MB     5.50MB (flat, cum)   100% of Total
+         .          .    696:		var duration *time.Duration
+         .          .    697:
+         .          .    698:		// inline the the setting up of the "EventHTTP" to save doing the HTTP(...)
+         .          .    699:		// thing as this escapes to the heap, whereas doing the following stays within
+         .          .    700:		// the stack of this calling function.
+  512.06kB   512.06kB    701:		e := EventHTTP{
+         .          .    702:			StatusCode: &statusCode,
+         .          .    703:			Method:     req.Method,
+         .          .    704:
+         .          .    705:			Scheme: req.URL.Scheme,
+         .          .    706:			Host:   req.URL.Hostname(),
+         .          .    707:			Port:   port,
+         .          .    708:			Path:   req.URL.Path,
+         .          .    709:			Query:  req.URL.RawQuery,
+         .          .    710:
+         .          .    711:			StartedAt:             &start,
+         .          .    712:			EndedAt:               nil,
+         .          .    713:			Duration:              duration,
+         .          .    714:			ResponseContentLength: 0,
+         .          .    715:		}
+         .          .    716:
+         .          .    717:		//Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
+         .          .    718:		Event(ctx, "http request received", &e)
+         .          .    719:
+         .          .    720:		port = 0
+         .          .    721:		if p := req2.URL.Port(); len(p) > 0 {
+         .          .    722:			port, _ = strconv.Atoi(p)
+         .          .    723:		}
+         .          .    724:
+         .          .    725:		e.Method = req2.Method
+         .          .    726:		e.Scheme = req2.URL.Scheme
+         .          .    727:		e.Host = req2.URL.Hostname()
+         .          .    728:		e.Port = port
+         .          .    729:		e.Path = req2.URL.Path
+         .          .    730:		e.Query = req2.URL.RawQuery
+         .          .    731:		e.StartedAt = nil
+         .          .    732:
+         .          .    733:		// 2nd event is 'similar in length' to one in createReverseProxy()
+         .          .    734:		//		Event(ctx, "proxying request", INFO, HTTP(req2, 0, 0, nil, nil),
+  512.02kB   512.02kB    735:		Event(ctx, "proxying request", INFO, &e,
+    4.50MB     4.50MB    736:			Data{"destination": babbageURL,
+         .          .    737:				"proxy_name": "babbage"})
+         .          .    738:
+         .          .    739:		port = 0
+         .          .    740:		if p := req2.URL.Port(); len(p) > 0 {
+         .          .    741:			port, _ = strconv.Atoi(p)
+
+-=-=-
+
+And the above shows that on line 736 the initialising of Data{...} is leaking to the stack ... if it could be eliminated
+or done in a way such that one only extracts just what is needed from 'babbageURL' then more savings could be found.
+
+Just commenting out the Data{...} and babbageURL items gets the saving to:
+
+216 bytes allocated over 7 allocations.
+
+pushing the percentage saved up to : 96.8%
+
+but the EventHTTP struct is still leaking to the stack.
+
+So, to have any chance of getting from Stage 5's 87.6% savings to 100% saving in allocations for the 3 events on the HOT-PATH
+for dp-frontend-router ... some new custom Event() functions would be needed that are implemented using sync.Pool
+These functions would then take all the individual parameters needed and not any struct's that leak to the heap.
+And hopefully none of the parameters passed leak to the heap.
+
+-=-=-
