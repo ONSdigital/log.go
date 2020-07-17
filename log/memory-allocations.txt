@@ -387,3 +387,46 @@ Showing nodes accounting for 2560.62kB, 100% of 2560.62kB total
 
 -=-=-
 
+17th July 2020
+
+Stage 5:
+
+Add and use optimized conversion functions.
+
+Memory allocations on HEAP now down to 850 over 14 allocations.
+
+Still using BenchmarkLog4():
+
+850 / 5578 = 0.15% which is a saving of 85%
+
+The pprof top30 is:
+
+Showing nodes accounting for 9729.41kB, 100% of 9729.41kB total
+      flat  flat%   sum%        cum   cum%
+ 5632.96kB 57.90% 57.90%  9729.41kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+ 3584.44kB 36.84% 94.74%  3584.44kB 36.84%  github.com/ONSdigital/log.go/log.HTTP
+  512.01kB  5.26%   100%   512.01kB  5.26%  sync.(*Map).LoadOrStore
+         0     0%   100%   512.01kB  5.26%  encoding/json.(*Encoder).Encode
+         0     0%   100%   512.01kB  5.26%  encoding/json.(*encodeState).marshal
+         0     0%   100%   512.01kB  5.26%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%   512.01kB  5.26%  encoding/json.typeEncoder
+         0     0%   100%   512.01kB  5.26%  encoding/json.valueEncoder
+         0     0%   100%   512.01kB  5.26%  github.com/ONSdigital/log.go/log.Event
+         0     0%   100%   512.01kB  5.26%  github.com/ONSdigital/log.go/log.expandDataToBuf
+         0     0%   100%  9217.40kB 94.74%  testing.(*B).launch
+         0     0%   100%   512.01kB  5.26%  testing.(*B).run1.func1
+         0     0%   100%  9729.41kB   100%  testing.(*B).runN
+
+-=-=-
+
+*** However, after noticing i was missing the "query" field that gets added in the depths of the 
+    reverse proxying and adding it ...
+
+Re-running BenchmarkLog5() ... which uses the original Event() code path ...
+
+    the Total bytes allocated for the 3 events is 6866 over 45 allocations.
+
+So, the savings figures change to:
+
+850 / 6866 = 0.124% which is a saving of 87.6%    (thats ~ 6016 bytes saved per request).
+

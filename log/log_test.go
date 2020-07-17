@@ -541,7 +541,7 @@ func BenchmarkLog4(b *testing.B) {
 	}
 
 	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
-	//       adds in the the resulting path that is revere proxied to.
+	//       adds in the the resulting path that is reverse proxied to.
 	// SO: The following replicates that so that this test more closely
 	//     matches what is seen in dp-frontend-router.
 	req2 := req
@@ -584,7 +584,7 @@ func BenchmarkLog5(b *testing.B) {
 	}
 
 	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
-	//       adds in the the resulting path that is revere proxied to.
+	//       adds in the the resulting path that is reverse proxied to.
 	// SO: The following replicates that so that this test more closely
 	//     matches what is seen in dp-frontend-router.
 	req2 := req
