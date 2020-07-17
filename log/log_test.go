@@ -540,6 +540,15 @@ func BenchmarkLog4(b *testing.B) {
 		return
 	}
 
+	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
+	//       adds in the the resulting path that is revere proxied to.
+	// SO: The following replicates that so that this test more closely
+	//     matches what is seen in dp-frontend-router.
+	req2 := req
+	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
+	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
+	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
+
 	requestID := newRequestID(16)
 	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
 	start := time.Now().UTC()
@@ -557,12 +566,12 @@ func BenchmarkLog4(b *testing.B) {
 		Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
 
 		// 2nd event is 'similar in length' to one in createReverseProxy()
-		Event(ctx, "proxying request", INFO, HTTP(req, 0, 0, nil, nil),
+		Event(ctx, "proxying request", INFO, HTTP(req2, 0, 0, nil, nil),
 			Data{"destination": babbageURL,
 				"proxy_name": "babbage"})
 
 		// 3rd Event is like the second one in Middleware()
-		Event(req.Context(), "http request completed", HTTP(req, 200, 4, &start, &end))
+		Event(req.Context(), "http request completed", HTTP(req2, 200, 4, &start, &end))
 	}
 }
 
@@ -573,6 +582,15 @@ func BenchmarkLog5(b *testing.B) {
 		fmt.Println(err)
 		return
 	}
+
+	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
+	//       adds in the the resulting path that is revere proxied to.
+	// SO: The following replicates that so that this test more closely
+	//     matches what is seen in dp-frontend-router.
+	req2 := req
+	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
+	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
+	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
 
 	requestID := newRequestID(16)
 	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
@@ -591,12 +609,12 @@ func BenchmarkLog5(b *testing.B) {
 		Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
 
 		// 2nd event is 'similar in length' to one in createReverseProxy()
-		Event(ctx, "proxying request", INFO, HTTP(req, 0, 0, nil, nil),
+		Event(ctx, "proxying request", INFO, HTTP(req2, 0, 0, nil, nil),
 			Data{"destination": babbageURL,
 				"proxy_name": "babbage"})
 
 		// 3rd Event is like the second one in Middleware()
-		Event(req.Context(), "http request completed", HTTP(req, 200, 4, &start, &end))
+		Event(req.Context(), "http request completed", HTTP(req2, 200, 4, &start, &end))
 	}
 }
 
