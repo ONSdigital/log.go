@@ -539,3 +539,65 @@ These functions would then take all the individual parameters needed and not any
 And hopefully none of the parameters passed leak to the heap.
 
 -=-=-
+
+18th July 2020
+
+Stage 7:
+
+Analysis of effect of Stage 5 code which has 87.6% savings on memory allocations for the 3 events on the HOT-PATH
+in dp-frontend-router
+
+Test dp-front-endrouter with new log.go with race detector with:
+
+	export MINIMUM_ALLOC=1		[ to use new log.go code ]
+
+	go run -race main.go
+
+and stress testing it with autocannon, by running:
+
+	./autocannon --pipelining=1000 --connections=1000 --duration=30 --uri=http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi
+
+and having babbage_nano running (a mock).
+
+No race problems found.
+
+-=-=-
+
+Without race detecotor in effect and running built versions of dp-frontend-router, autocannon and babbage_nano
+TEN runs of each of the following configurations were run and the total number of completed requests recorded in
+file: less allocations impact on dp-frontend-router.ods
+
+The output from dp-frontend-router was processed to generate a number of PDF plots.
+
+								requests per	new gain over old
+config 1:				result plot		second		% more requests		Average mem allocated
+old log.go, garbage collection @10	e-old-gc10.pdf		12.5K					~ 20 Mega Bytes
+
+config 2:
+old log.go, garbage collection @100	e-old-gc100.pdf		15.2K					~ 28 Mega Bytes
+
+config 3:
+New log.go, garbage collection @10	e-new-gc10.pdf		14.1K		12.4%			~ 20 Mega Bytes
+
+config 4:
+New log.go, garbage collection @100	e-new-gc100.pdf		16.3K		7.1%			~ 27 Mega Bytes
+
+
+Observations:
+=============
+1. Running the Garbage collector at 10 has a big impact on the average memory allocated.
+
+2. The new log code with less allocations runs faster allowing more requests per second and when the Garbage Collector
+   is at 10, the new log code has only slightly less requests per second (on this test setup) than the original
+   unmodified code, but brings the average memory allocated down by about 8 Mega Bytes and this could be of great help.
+
+3. The default "ulimit of 1024" on my Ubuntu 18.04LTS is clamping the maximum number of go routines that are active to
+   what looks like 1017 (that are servicing connections).
+    (I'm using a modified version of serve'go to count the number of go routines active - no limit clamping is being done).
+
+Action:
+=======
+1. Has anyone logged into the container that is running dp-frontend-router and checked what 'ulimit -n' is ???
+   (if it is more than 1024, then that will allow more server connections to be established and more memory allocated ...).
+
+-=-=-
