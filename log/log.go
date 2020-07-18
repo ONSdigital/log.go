@@ -476,7 +476,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 	if !e.CreatedAt.IsZero() {
 		somethingWritten = true
 		buf.WriteByte('"')
-		buf.WriteString("created at")
+		buf.WriteString("created_at")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
 		buf.WriteByte('"')
@@ -568,9 +568,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		buf.WriteString("auth")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		//buf.WriteByte('{')
 		expandAuthToBuf(buf, e.Auth)
-		//buf.WriteByte('}')
 	}
 
 	if e.Data != nil {
@@ -595,9 +593,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		buf.WriteString("error")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		//buf.WriteByte('{')
 		expandErrorToBuf(buf, e.Error)
-		//buf.WriteByte('}')
 	}
 
 	buf.WriteByte('}')
@@ -611,6 +607,13 @@ func Event(ctx context.Context, event string, opts ...option) {
 func initEvent() *eventFunc {
 	if flag.Lookup("minimumAllocs") != nil {
 		isMinimalAllocations = true
+		//fmt.Printf("\n\nmin alloccs\n\n")
+		//os.Exit(2)
+	}
+	if b, _ := strconv.ParseBool(os.Getenv("MINIMUM_ALLOC")); b {
+		isMinimalAllocations = true
+		//fmt.Printf("\n\nmin alloccs M\n\n")
+		//os.Exit(3)
 	}
 
 	// If we're in test mode, replace the Event function with one
