@@ -599,7 +599,28 @@ func Event(ctx context.Context, event string, opts ...option) {
 	buf.WriteByte('}')
 	buf.WriteByte(10)
 
-	buf.WriteTo(destination)
+	l := int64(buf.Len()) // cast to same type as returned by WriteTo()
+
+	// try and write to stdout
+	if n, err := buf.WriteTo(destination); n != l || err != nil {
+		// if that fails, try and write to stderr
+		if n, err := buf.WriteTo(fallbackDestination); n != l || err != nil {
+			// if that fails, panic!
+			//
+			// also defer an os.Exit since the panic might be captured in a recover
+			// block in the caller, but we always want to exit in this scenario
+			//
+			// Note: deferring an os.Exit makes this particular block untestable
+			// using conventional `go test`. But it's a narrow enough edge case that
+			// it probably isn't worth trying, and only occurs in extreme circumstances
+			// (os.Stdout and os.Stderr both being closed) where unpredictable
+			// behaviour is expected. It's not clear what a panic or os.Exit would do
+			// in this scenario, or if our process is even still alive to get this far.
+			defer os.Exit(1)
+			panic("error writing log data: " + err.Error())
+		}
+	}
+
 	bufPool.Put(buf)
 }
 
