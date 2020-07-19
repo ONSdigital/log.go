@@ -1,6 +1,7 @@
 package log
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
@@ -397,7 +398,7 @@ func BenchmarkLog1(b *testing.B) {
 	data2 := "d2"
 	data3 := "d3"
 	data4 := "d4"
-	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -535,7 +536,7 @@ func BenchmarkLog3(b *testing.B) {
 
 func BenchmarkLog4(b *testing.B) {
 	fmt.Println("Benchmarking: 'Log'")
-	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -572,13 +573,13 @@ func BenchmarkLog4(b *testing.B) {
 				"proxy_name": "babbage"})
 
 		// 3rd Event is like the second one in Middleware()
-		Event(req.Context(), "http request completed", HTTP(req2, 200, 4, &start, &end))
+		Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 	}
 }
 
 func BenchmarkLog5(b *testing.B) {
 	fmt.Println("Benchmarking: 'Log'")
-	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -615,7 +616,7 @@ func BenchmarkLog5(b *testing.B) {
 				"proxy_name": "babbage"})
 
 		// 3rd Event is like the second one in Middleware()
-		Event(req.Context(), "http request completed", HTTP(req2, 200, 4, &start, &end))
+		Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 	}
 }
 
@@ -627,7 +628,7 @@ func BenchmarkLog6(b *testing.B) {
 	data2 := "d2"
 	data3 := "d3"
 	data4 := "d4"
-	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -657,7 +658,7 @@ func BenchmarkLog6(b *testing.B) {
 
 func BenchmarkLog7(b *testing.B) {
 	fmt.Println("Benchmarking: 'Log'")
-	req, err := http.NewRequest("GET", "ttp://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -760,6 +761,162 @@ func BenchmarkLog7(b *testing.B) {
 
 		// 3rd Event is like the second one in Middleware()
 		//		Event(req.Context(), "http request completed", HTTP(req2, 200, 4, &start, &end))
-		Event(req.Context(), "http request completed", &e)
+		Event(ctx, "http request completed", &e)
 	}
+}
+
+func TestLogNew1(t *testing.T) {
+	// Test 3 events that look like what dp-frontend-router issues on the HAPPY HOT-PATH
+	// Get the old events for the 3 and the new events for 3 and compare ...
+
+	oldDestination := destination
+	oldFallbackDestination := fallbackDestination
+
+	defer func() {
+		destination = oldDestination
+		fallbackDestination = oldFallbackDestination
+	}()
+
+	fmt.Println("Testing: 'New Log 1'")
+	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
+	//       adds in the the resulting path that is reverse proxied to.
+	// SO: The following replicates that so that this test more closely
+	//     matches what is seen in dp-frontend-router.
+	req2 := req
+	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
+	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
+	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
+
+	requestID := newRequestID(16)
+	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
+	start := time.Now().UTC()
+	end := time.Now().UTC()
+	babbageURL, err := url.Parse("http://localhost:8080")
+
+	Namespace = "BenchmarkLog" // force a fixed value as sometimes during testing this changes and does not help when comparing to other tests
+
+	//////////////////////
+	// Capture old events
+
+	isMinimalAllocations = false // use existing Event() code
+
+	// 1st Event is like the first one in Middleware()
+	// Capture the output of the call to Event()
+	var bytesWritten []byte
+	destination = &writer{func(b []byte) (n int, err error) {
+		bytesWritten = b
+		return len(b), nil
+	}}
+	Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
+
+	// Converting what has been captured in bytesWritten with string()
+	// puts : !F(MISSING)
+	// into the output, so we do the following:
+	// We have to copy the result into a new buffer because the Fprintln over-writes
+	// the result (what a pain).
+	oldBuffer1 := make([]byte, 1)
+	for i := 0; i < len(bytesWritten); i++ {
+		oldBuffer1 = append(oldBuffer1, bytesWritten[i])
+	}
+	o1 := bytes.NewBuffer(oldBuffer1)
+	l := int64(o1.Len()) // cast to same type as returned by WriteTo()
+	fmt.Fprintln(oldDestination, "Captured Event OLD 1:")
+	if n, err := o1.WriteTo(oldDestination); n != l || err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 2nd event is 'similar in length' to one in createReverseProxy()
+	Event(ctx, "proxying request", INFO, HTTP(req2, 0, 0, nil, nil),
+		Data{"destination": babbageURL,
+			"proxy_name": "babbage"})
+
+	oldBuffer2 := make([]byte, 1)
+	for i := 0; i < len(bytesWritten); i++ {
+		oldBuffer2 = append(oldBuffer2, bytesWritten[i])
+	}
+	o2 := bytes.NewBuffer(oldBuffer2)
+	l = int64(o2.Len())
+	fmt.Fprintln(oldDestination, "Captured Event OLD 2:")
+	if n, err := o2.WriteTo(oldDestination); n != l || err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 3rd Event is like the second one in Middleware()
+	// Capture the output of the call to Event()
+	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
+
+	oldBuffer3 := make([]byte, 1)
+	for i := 0; i < len(bytesWritten); i++ {
+		oldBuffer3 = append(oldBuffer3, bytesWritten[i])
+	}
+	o3 := bytes.NewBuffer(oldBuffer3)
+	l = int64(o3.Len())
+	fmt.Fprintln(oldDestination, "Captured Event OLD 3:")
+	if n, err := o3.WriteTo(oldDestination); n != l || err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//////////////////////
+	// Capture NEW events
+
+	isMinimalAllocations = true // use new Event() code, for minimum memory allocations
+
+	// 1st Event is like the first one in Middleware()
+	Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
+
+	newBuffer1 := make([]byte, 1)
+	for i := 0; i < len(bytesWritten); i++ {
+		newBuffer1 = append(newBuffer1, bytesWritten[i])
+	}
+	n1 := bytes.NewBuffer(newBuffer1)
+	l = int64(n1.Len()) // cast to same type as returned by WriteTo()
+	fmt.Fprintln(oldDestination, "Captured Event NEW 1:")
+	if n, err := n1.WriteTo(oldDestination); n != l || err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 2nd event is 'similar in length' to one in createReverseProxy()
+	Event(ctx, "proxying request", INFO, HTTP(req2, 0, 0, nil, nil),
+		Data{"destination": babbageURL,
+			"proxy_name": "babbage"})
+
+	newBuffer2 := make([]byte, 1)
+	for i := 0; i < len(bytesWritten); i++ {
+		newBuffer2 = append(newBuffer2, bytesWritten[i])
+	}
+	n2 := bytes.NewBuffer(newBuffer2)
+	l = int64(n2.Len()) // cast to same type as returned by WriteTo()
+	fmt.Fprintln(oldDestination, "Captured Event NEW 2:")
+	if n, err := n2.WriteTo(oldDestination); n != l || err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 3rd Event is like the second one in Middleware()
+	// Capture the output of the call to Event()
+	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
+
+	newBuffer3 := make([]byte, 1)
+	for i := 0; i < len(bytesWritten); i++ {
+		newBuffer3 = append(newBuffer3, bytesWritten[i])
+	}
+	n3 := bytes.NewBuffer(newBuffer3)
+	l = int64(n3.Len()) // cast to same type as returned by WriteTo()
+	fmt.Fprintln(oldDestination, "Captured Event NEW 3:")
+	if n, err := n3.WriteTo(oldDestination); n != l || err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//!!! add code to compare old and new events
 }

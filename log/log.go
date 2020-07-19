@@ -64,33 +64,68 @@ func expandIntToBuf4(buf *bytes.Buffer, value int) {
 }
 
 func expandIntToBuf9(buf *bytes.Buffer, value int) {
-	c1 := byte((value % 10) + '0')
+	var out [11]byte
+
+	//value2 := value
+
+	out[8] = byte((value % 10) + '0')
 	value = value / 10
-	c2 := byte((value % 10) + '0')
+	out[7] = byte((value % 10) + '0')
 	value = value / 10
-	c3 := byte((value % 10) + '0')
+	out[6] = byte((value % 10) + '0')
 	value = value / 10
-	c4 := byte((value % 10) + '0')
+	out[5] = byte((value % 10) + '0')
 	value = value / 10
-	c5 := byte((value % 10) + '0')
+	out[4] = byte((value % 10) + '0')
 	value = value / 10
-	c6 := byte((value % 10) + '0')
+	out[3] = byte((value % 10) + '0')
 	value = value / 10
-	c7 := byte((value % 10) + '0')
+	out[2] = byte((value % 10) + '0')
 	value = value / 10
-	c8 := byte((value % 10) + '0')
+	out[1] = byte((value % 10) + '0')
 	value = value / 10
-	c9 := byte((value % 10) + '0')
-	buf.WriteByte(c9)
-	buf.WriteByte(c8)
-	buf.WriteByte(c7)
-	buf.WriteByte(c6)
-	buf.WriteByte(c5)
-	buf.WriteByte(c4)
-	buf.WriteByte(c3)
-	buf.WriteByte(c2)
-	buf.WriteByte(c1)
+	out[0] = byte((value % 10) + '0')
+
+	var last int = 1
+	for i := 8; i >= 1; i-- {
+		if out[i] != '0' {
+			last = i
+			break
+		}
+	}
+	// now output all digits, except for any trailing zero's
+	for i := 0; i <= last; i++ {
+		buf.WriteByte(out[i])
+	}
 	buf.WriteByte('Z')
+
+	/*	c1 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c2 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c3 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c4 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c5 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c6 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c7 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c8 := byte((value2 % 10) + '0')
+		value2 = value2 / 10
+		c9 := byte((value2 % 10) + '0')
+		buf.WriteByte(c9)
+		buf.WriteByte(c8)
+		buf.WriteByte(c7)
+		buf.WriteByte(c6)
+		buf.WriteByte(c5)
+		buf.WriteByte(c4)
+		buf.WriteByte(c3)
+		buf.WriteByte(c2)
+		buf.WriteByte(c1)
+		buf.WriteByte('Z')*/
 }
 
 func expandTimeToBuf(buf *bytes.Buffer, value time.Time) {
@@ -166,10 +201,6 @@ func expandInt64(buf *bytes.Buffer, n int64) {
 func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	// We know what the '*EventHTTP' is, so its contents can be directly
 	// extracted ...
-	buf.WriteByte('"')
-	buf.WriteString("http")
-	buf.WriteByte('"')
-	buf.WriteByte(':')
 	buf.WriteByte('{')
 
 	var somethingWritten bool
@@ -539,9 +570,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		buf.WriteString("severity")
 		buf.WriteByte('"')
 		buf.WriteByte(':')
-		buf.WriteByte('"')
 		expandInt(buf, int(*e.Severity))
-		buf.WriteByte('"')
 	}
 
 	if e.HTTP != nil {

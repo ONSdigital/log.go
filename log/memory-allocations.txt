@@ -605,3 +605,30 @@ Action:
    (if it is more than 1024, then that will allow more server connections to be established and more memory allocated ...).
 
 -=-=-
+
+19th July 2020
+
+Stage 8:
+
+Add Test function : TestLogNew1()
+
+run it with:
+
+	go test -v -run TestLogNew1
+
+This showed some differences when visually inspecting the output of this test.
+
+These are new fixed.
+
+The library routine that prints the time does not output trailing zero's, so new log code adjusted to do the same.
+
+There is more work todo inside this function to programmatically compare the old events against the new ones.
+
+The changes now show that the original three events allocates ~6995 bytes and the new is ~850
+
+so the actual savings are now:
+
+850 / 6995 = 0.122% which is a saving of 87.8%
+
+-=-=-
+
