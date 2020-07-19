@@ -552,7 +552,10 @@ Test dp-front-endrouter with new log.go with race detector with:
 
 	export MINIMUM_ALLOC=1		[ to use new log.go code ]
 
-	go run -race main.go
+	go build -race main.go
+
+end run it with :
+	./main
 
 and stress testing it with autocannon, by running:
 
