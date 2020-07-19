@@ -545,7 +545,8 @@ And hopefully none of the parameters passed leak to the heap.
 Stage 7:
 
 Analysis of effect of Stage 5 code which has 87.6% savings on memory allocations for the 3 events on the HOT-PATH
-in dp-frontend-router
+in dp-frontend-router.
+(Actual code used has a bug fix and new code to read environment variable 'MINIMUM_ALLOC').
 
 Test dp-front-endrouter with new log.go with race detector with:
 
