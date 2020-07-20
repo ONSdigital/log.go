@@ -632,3 +632,34 @@ so the actual savings are now:
 
 -=-=-
 
+20th July 2020
+
+Fix bug in log.go and fix some mistakes in test code.
+
+Temporary debug print from : TestLogNew1()   (where just the time stamps are different)
+
+BUT, in this example OLD 2 and NEW 2 have the data for 'proxy_name' and 'destination' swapped.
+
+(which won't help in writting comparison code).
+
+-=-=-
+Testing: 'New Log 1'
+Captured Event OLD 1:
+{"created_at":"2020-07-20T10:47:45.642782503Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z"}}
+Captured Event OLD 2:
+{"created_at":"2020-07-20T10:47:45.643210833Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+Captured Event OLD 3:
+{"created_at":"2020-07-20T10:47:45.643319905Z","namespace":"BenchmarkLog","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z","ended_at":"2020-07-20T10:47:45.642777823Z","duration":295,"response_content_length":4}}
+Captured Event NEW 1:
+{"created_at":"2020-07-20T10:47:45.643355175Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z"}}
+Captured Event NEW 2:
+{"created_at":"2020-07-20T10:47:45.643387638Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"proxy_name":"babbage","destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""}}}
+Captured Event NEW 3:
+{"created_at":"2020-07-20T10:47:45.643420794Z","namespace":"BenchmarkLog","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z","ended_at":"2020-07-20T10:47:45.642777823Z","duration":295,"response_content_length":4}}
+
+-=-=-
+
+This shortens the original amount of allocations to 6610 and adjusts the savings to be:
+
+850 / 6610 = 0.129% which is a saving of 87.1%
+

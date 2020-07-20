@@ -546,7 +546,11 @@ func BenchmarkLog4(b *testing.B) {
 	//       adds in the the resulting path that is reverse proxied to.
 	// SO: The following replicates that so that this test more closely
 	//     matches what is seen in dp-frontend-router.
-	req2 := req
+	req2, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
 	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
 	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
@@ -589,7 +593,11 @@ func BenchmarkLog5(b *testing.B) {
 	//       adds in the the resulting path that is reverse proxied to.
 	// SO: The following replicates that so that this test more closely
 	//     matches what is seen in dp-frontend-router.
-	req2 := req
+	req2, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
 	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
 	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
@@ -668,7 +676,11 @@ func BenchmarkLog7(b *testing.B) {
 	//       adds in the the resulting path that is revere proxied to.
 	// SO: The following replicates that so that this test more closely
 	//     matches what is seen in dp-frontend-router.
-	req2 := req
+	req2, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
 	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
 	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
@@ -768,6 +780,9 @@ func BenchmarkLog7(b *testing.B) {
 func TestLogNew1(t *testing.T) {
 	// Test 3 events that look like what dp-frontend-router issues on the HAPPY HOT-PATH
 	// Get the old events for the 3 and the new events for 3 and compare ...
+	// The 3 old events are captured first and copied to buffers and then the
+	// 3 new events are captured and copied to buffers to ensure no mistakes in
+	// what one 'thinks' is in a particular buffer.
 
 	oldDestination := destination
 	oldFallbackDestination := fallbackDestination
@@ -780,15 +795,17 @@ func TestLogNew1(t *testing.T) {
 	fmt.Println("Testing: 'New Log 1'")
 	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		t.Errorf("%v", err)
 	}
 
 	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
 	//       adds in the the resulting path that is reverse proxied to.
 	// SO: The following replicates that so that this test more closely
 	//     matches what is seen in dp-frontend-router.
-	req2 := req
+	req2, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
 	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
 	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
 	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
@@ -828,8 +845,7 @@ func TestLogNew1(t *testing.T) {
 	l := int64(o1.Len()) // cast to same type as returned by WriteTo()
 	fmt.Fprintln(oldDestination, "Captured Event OLD 1:")
 	if n, err := o1.WriteTo(oldDestination); n != l || err != nil {
-		fmt.Println(err)
-		return
+		t.Errorf("%v", err)
 	}
 
 	// 2nd event is 'similar in length' to one in createReverseProxy()
@@ -845,12 +861,10 @@ func TestLogNew1(t *testing.T) {
 	l = int64(o2.Len())
 	fmt.Fprintln(oldDestination, "Captured Event OLD 2:")
 	if n, err := o2.WriteTo(oldDestination); n != l || err != nil {
-		fmt.Println(err)
-		return
+		t.Errorf("%v", err)
 	}
 
 	// 3rd Event is like the second one in Middleware()
-	// Capture the output of the call to Event()
 	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 
 	oldBuffer3 := make([]byte, 1)
@@ -861,8 +875,7 @@ func TestLogNew1(t *testing.T) {
 	l = int64(o3.Len())
 	fmt.Fprintln(oldDestination, "Captured Event OLD 3:")
 	if n, err := o3.WriteTo(oldDestination); n != l || err != nil {
-		fmt.Println(err)
-		return
+		t.Errorf("%v", err)
 	}
 
 	//////////////////////
@@ -878,11 +891,10 @@ func TestLogNew1(t *testing.T) {
 		newBuffer1 = append(newBuffer1, bytesWritten[i])
 	}
 	n1 := bytes.NewBuffer(newBuffer1)
-	l = int64(n1.Len()) // cast to same type as returned by WriteTo()
+	l = int64(n1.Len())
 	fmt.Fprintln(oldDestination, "Captured Event NEW 1:")
 	if n, err := n1.WriteTo(oldDestination); n != l || err != nil {
-		fmt.Println(err)
-		return
+		t.Errorf("%v", err)
 	}
 
 	// 2nd event is 'similar in length' to one in createReverseProxy()
@@ -895,15 +907,13 @@ func TestLogNew1(t *testing.T) {
 		newBuffer2 = append(newBuffer2, bytesWritten[i])
 	}
 	n2 := bytes.NewBuffer(newBuffer2)
-	l = int64(n2.Len()) // cast to same type as returned by WriteTo()
+	l = int64(n2.Len())
 	fmt.Fprintln(oldDestination, "Captured Event NEW 2:")
 	if n, err := n2.WriteTo(oldDestination); n != l || err != nil {
-		fmt.Println(err)
-		return
+		t.Errorf("%v", err)
 	}
 
 	// 3rd Event is like the second one in Middleware()
-	// Capture the output of the call to Event()
 	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 
 	newBuffer3 := make([]byte, 1)
@@ -911,12 +921,16 @@ func TestLogNew1(t *testing.T) {
 		newBuffer3 = append(newBuffer3, bytesWritten[i])
 	}
 	n3 := bytes.NewBuffer(newBuffer3)
-	l = int64(n3.Len()) // cast to same type as returned by WriteTo()
+	l = int64(n3.Len())
 	fmt.Fprintln(oldDestination, "Captured Event NEW 3:")
 	if n, err := n3.WriteTo(oldDestination); n != l || err != nil {
-		fmt.Println(err)
-		return
+		t.Errorf("%v", err)
 	}
+
+	//////////////////////
+	// Compare old to new
+
+	// The only difference should be in the 'created_at' timestamps
 
 	//!!! add code to compare old and new events
 }

@@ -86,8 +86,8 @@ func expandIntToBuf9(buf *bytes.Buffer, value int) {
 	value = value / 10
 	out[0] = byte((value % 10) + '0')
 
-	var last int = 1
-	for i := 8; i >= 1; i-- {
+	var last int = 0
+	for i := 8; i >= 0; i-- {
 		if out[i] != '0' {
 			last = i
 			break
@@ -98,34 +98,6 @@ func expandIntToBuf9(buf *bytes.Buffer, value int) {
 		buf.WriteByte(out[i])
 	}
 	buf.WriteByte('Z')
-
-	/*	c1 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c2 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c3 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c4 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c5 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c6 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c7 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c8 := byte((value2 % 10) + '0')
-		value2 = value2 / 10
-		c9 := byte((value2 % 10) + '0')
-		buf.WriteByte(c9)
-		buf.WriteByte(c8)
-		buf.WriteByte(c7)
-		buf.WriteByte(c6)
-		buf.WriteByte(c5)
-		buf.WriteByte(c4)
-		buf.WriteByte(c3)
-		buf.WriteByte(c2)
-		buf.WriteByte(c1)
-		buf.WriteByte('Z')*/
 }
 
 func expandTimeToBuf(buf *bytes.Buffer, value time.Time) {
