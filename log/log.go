@@ -558,7 +558,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		expandHTTPToBuf(buf, e.HTTP)
 	}
 
-	//!!! run benchmark 6 to see this
+	// run benchmark 6 to see this
 	if e.Auth != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
@@ -585,7 +585,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		expandDataToBuf(buf, e.Data)
 	}
 
-	//!!! run benchmark 6 to see this
+	// run benchmark 6 to see this
 	if e.Error != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
@@ -826,7 +826,7 @@ func print(b []byte) {
 		return
 	}
 
-	//	b = append(b, 55) // used to break test, just to check that test is working !!! (remove when memory alllocation optimisation finished)
+	//	b = append(b, 55) // used to break test, just to check that test is working
 	// try and write to stdout
 	if n, err := fmt.Fprintln(destination, string(b)); n != len(b)+1 || err != nil {
 		// if that fails, try and write to stderr

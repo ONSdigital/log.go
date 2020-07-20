@@ -3,6 +3,7 @@ package log
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"sync"
 	"testing"
@@ -837,15 +839,9 @@ func TestLogNew1(t *testing.T) {
 	// into the output, so we do the following:
 	// We have to copy the result into a new buffer because the Fprintln over-writes
 	// the result (what a pain).
-	oldBuffer1 := make([]byte, 1)
+	oldBuffer1 := make([]byte, 0, 1000)
 	for i := 0; i < len(bytesWritten); i++ {
 		oldBuffer1 = append(oldBuffer1, bytesWritten[i])
-	}
-	o1 := bytes.NewBuffer(oldBuffer1)
-	l := int64(o1.Len()) // cast to same type as returned by WriteTo()
-	fmt.Fprintln(oldDestination, "Captured Event OLD 1:")
-	if n, err := o1.WriteTo(oldDestination); n != l || err != nil {
-		t.Errorf("%v", err)
 	}
 
 	// 2nd event is 'similar in length' to one in createReverseProxy()
@@ -853,29 +849,17 @@ func TestLogNew1(t *testing.T) {
 		Data{"destination": babbageURL,
 			"proxy_name": "babbage"})
 
-	oldBuffer2 := make([]byte, 1)
+	oldBuffer2 := make([]byte, 0, 1000)
 	for i := 0; i < len(bytesWritten); i++ {
 		oldBuffer2 = append(oldBuffer2, bytesWritten[i])
-	}
-	o2 := bytes.NewBuffer(oldBuffer2)
-	l = int64(o2.Len())
-	fmt.Fprintln(oldDestination, "Captured Event OLD 2:")
-	if n, err := o2.WriteTo(oldDestination); n != l || err != nil {
-		t.Errorf("%v", err)
 	}
 
 	// 3rd Event is like the second one in Middleware()
 	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 
-	oldBuffer3 := make([]byte, 1)
+	oldBuffer3 := make([]byte, 0, 1000)
 	for i := 0; i < len(bytesWritten); i++ {
 		oldBuffer3 = append(oldBuffer3, bytesWritten[i])
-	}
-	o3 := bytes.NewBuffer(oldBuffer3)
-	l = int64(o3.Len())
-	fmt.Fprintln(oldDestination, "Captured Event OLD 3:")
-	if n, err := o3.WriteTo(oldDestination); n != l || err != nil {
-		t.Errorf("%v", err)
 	}
 
 	//////////////////////
@@ -886,15 +870,9 @@ func TestLogNew1(t *testing.T) {
 	// 1st Event is like the first one in Middleware()
 	Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
 
-	newBuffer1 := make([]byte, 1)
+	newBuffer1 := make([]byte, 0, 1000)
 	for i := 0; i < len(bytesWritten); i++ {
 		newBuffer1 = append(newBuffer1, bytesWritten[i])
-	}
-	n1 := bytes.NewBuffer(newBuffer1)
-	l = int64(n1.Len())
-	fmt.Fprintln(oldDestination, "Captured Event NEW 1:")
-	if n, err := n1.WriteTo(oldDestination); n != l || err != nil {
-		t.Errorf("%v", err)
 	}
 
 	// 2nd event is 'similar in length' to one in createReverseProxy()
@@ -902,29 +880,17 @@ func TestLogNew1(t *testing.T) {
 		Data{"destination": babbageURL,
 			"proxy_name": "babbage"})
 
-	newBuffer2 := make([]byte, 1)
+	newBuffer2 := make([]byte, 0, 1000)
 	for i := 0; i < len(bytesWritten); i++ {
 		newBuffer2 = append(newBuffer2, bytesWritten[i])
-	}
-	n2 := bytes.NewBuffer(newBuffer2)
-	l = int64(n2.Len())
-	fmt.Fprintln(oldDestination, "Captured Event NEW 2:")
-	if n, err := n2.WriteTo(oldDestination); n != l || err != nil {
-		t.Errorf("%v", err)
 	}
 
 	// 3rd Event is like the second one in Middleware()
 	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 
-	newBuffer3 := make([]byte, 1)
+	newBuffer3 := make([]byte, 0, 1000)
 	for i := 0; i < len(bytesWritten); i++ {
 		newBuffer3 = append(newBuffer3, bytesWritten[i])
-	}
-	n3 := bytes.NewBuffer(newBuffer3)
-	l = int64(n3.Len())
-	fmt.Fprintln(oldDestination, "Captured Event NEW 3:")
-	if n, err := n3.WriteTo(oldDestination); n != l || err != nil {
-		t.Errorf("%v", err)
 	}
 
 	//////////////////////
@@ -932,5 +898,179 @@ func TestLogNew1(t *testing.T) {
 
 	// The only difference should be in the 'created_at' timestamps
 
-	//!!! add code to compare old and new events
+	if err := compareEvents("Event 1", oldBuffer1, newBuffer1); err != nil {
+		o1 := bytes.NewBuffer(oldBuffer1)
+		fmt.Fprintln(oldDestination, "Captured Event OLD 1:")
+		o1.WriteTo(oldDestination) // ignore any error from this as it is not important
+
+		n1 := bytes.NewBuffer(newBuffer1)
+		fmt.Fprintln(oldDestination, "Captured Event NEW 1:")
+		n1.WriteTo(oldDestination)
+
+		t.Errorf("%v", err)
+	}
+
+	if err := compareEvents("Event 2", oldBuffer2, newBuffer2); err != nil {
+		o2 := bytes.NewBuffer(oldBuffer2)
+		fmt.Fprintln(oldDestination, "Captured Event OLD 2:")
+		o2.WriteTo(oldDestination)
+
+		n2 := bytes.NewBuffer(newBuffer2)
+		fmt.Fprintln(oldDestination, "Captured Event NEW 2:")
+		n2.WriteTo(oldDestination)
+
+		t.Errorf("%v", err)
+	}
+
+	if err := compareEvents("Event 3", oldBuffer3, newBuffer3); err != nil {
+		o3 := bytes.NewBuffer(oldBuffer3)
+		fmt.Fprintln(oldDestination, "Captured Event OLD 3:")
+		o3.WriteTo(oldDestination)
+
+		n3 := bytes.NewBuffer(newBuffer3)
+		fmt.Fprintln(oldDestination, "Captured Event NEW 3:")
+		n3.WriteTo(oldDestination)
+
+		t.Errorf("%v", err)
+	}
+}
+
+func compareEvents(eventNumber string, eventOld []byte, eventNew []byte) error {
+	eventOld = append(eventOld, byte(10)) // add termination for json Unmarshal to know when to stop
+	eventNew = append(eventNew, byte(10)) // add termination for json Unmarshal to know when to stop
+
+	var to1, tn1 EventData2
+
+	err := json.Unmarshal(eventOld, &to1)
+	if err != nil {
+		fmt.Printf("Problem with Old %s\n", eventNumber)
+		return err
+	}
+	err = json.Unmarshal(eventNew, &tn1)
+	if err != nil {
+		fmt.Printf("Problem with New %s\n", eventNumber)
+		return err
+	}
+
+	if to1.CreatedAt == tn1.CreatedAt {
+		es := eventNumber + ": 'created_at' should not be the same"
+		return errors.New(es)
+	}
+
+	if to1.Namespace != tn1.Namespace {
+		es := eventNumber + ": 'namespace' should be the same"
+		return errors.New(es)
+	}
+
+	if to1.Event != tn1.Event {
+		es := eventNumber + ": 'event' should be the same"
+		return errors.New(es)
+	}
+
+	if to1.TraceID != tn1.TraceID {
+		es := eventNumber + ": 'trace_id' should be the same"
+		return errors.New(es)
+	}
+
+	if to1.Severity != nil && tn1.Severity != nil {
+		if *to1.Severity != *tn1.Severity {
+			es := eventNumber + ": 'severity' should be the same"
+			return errors.New(es)
+		}
+	}
+
+	if to1.HTTP != nil && tn1.HTTP != nil {
+		if to1.HTTP.StatusCode != nil && tn1.HTTP.StatusCode != nil {
+			if *to1.HTTP.StatusCode != *tn1.HTTP.StatusCode {
+				es := eventNumber + ": 'status_code' should be the same"
+				return errors.New(es)
+			}
+		}
+
+		if to1.HTTP.Method != tn1.HTTP.Method {
+			es := eventNumber + ": 'method' should be the same"
+			return errors.New(es)
+		}
+		if to1.HTTP.Scheme != tn1.HTTP.Scheme {
+			es := eventNumber + ": 'scheme' should be the same"
+			return errors.New(es)
+		}
+		if to1.HTTP.Host != tn1.HTTP.Host {
+			es := eventNumber + ": 'host' should be the same"
+			return errors.New(es)
+		}
+		if to1.HTTP.Port != tn1.HTTP.Port {
+			es := eventNumber + ": 'port' should be the same"
+			return errors.New(es)
+		}
+		if to1.HTTP.Path != tn1.HTTP.Path {
+			es := eventNumber + ": 'path' should be the same"
+			return errors.New(es)
+		}
+		if to1.HTTP.Query != tn1.HTTP.Query {
+			es := eventNumber + ": 'query' should be the same"
+			return errors.New(es)
+		}
+
+		if to1.HTTP.StartedAt != nil && tn1.HTTP.StartedAt != nil {
+			if *to1.HTTP.StartedAt != *tn1.HTTP.StartedAt {
+				es := eventNumber + ": 'started_at' should be the same"
+				return errors.New(es)
+			}
+		}
+
+		if to1.HTTP.EndedAt != nil && tn1.HTTP.EndedAt != nil {
+			if *to1.HTTP.EndedAt != *tn1.HTTP.EndedAt {
+				es := eventNumber + ": 'ended_at' should be the same"
+				return errors.New(es)
+			}
+		}
+
+		if to1.HTTP.Duration != nil && tn1.HTTP.Duration != nil {
+			if *to1.HTTP.Duration != *tn1.HTTP.Duration {
+				es := eventNumber + ": 'duration' should be the same"
+				return errors.New(es)
+			}
+		}
+
+		if to1.HTTP.ResponseContentLength != tn1.HTTP.ResponseContentLength {
+			es := eventNumber + ": 'response_content_length' should be the same"
+			return errors.New(es)
+		}
+	}
+
+	// 'Auth' has not been set in any of these events, so it is not tested here
+
+	if to1.Data != nil && tn1.Data != nil {
+		// Extract data to map[] for easy printing if there is a problem.
+		oldData := make(map[string]string)
+
+		for k, v := range *to1.Data {
+			oldData[k] = fmt.Sprintf("%+v", v)
+		}
+
+		newData := make(map[string]string)
+
+		for k, v := range *tn1.Data {
+			newData[k] = fmt.Sprintf("%+v", v)
+		}
+
+		//newData["proxy_name"] = "test" // put this in to 'test' test code
+		eq := reflect.DeepEqual(oldData, newData)
+		if !eq {
+			for k, v := range oldData {
+				fmt.Printf("old: %s, %+v\n", k, v)
+			}
+			for k, v := range newData {
+				fmt.Printf("new: %s, %+v\n", k, v)
+			}
+
+			es := eventNumber + ": 'data' should be the same"
+			return errors.New(es)
+		}
+	}
+
+	// 'Error'  has not been set in any of these events, so it is not tested here
+
+	return nil
 }
