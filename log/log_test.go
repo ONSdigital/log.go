@@ -35,6 +35,11 @@ func (w writer) Write(b []byte) (n int, err error) {
 }
 
 func TestLog(t *testing.T) {
+	oldEventFuncInst := eventFuncInst
+	defer func() {
+		eventFuncInst = oldEventFuncInst // this needed for other test functions
+	}()
+
 	Convey("Package defaults are right", t, func() {
 		Convey("Namespace defaults to os.Args[0]", func() {
 			So(Namespace, ShouldEqual, os.Args[0])
@@ -343,9 +348,11 @@ func TestLog(t *testing.T) {
 
 	Convey("eventWithoutOptionsCheck calls print with the output of the selected styler", t, func() {
 		oldDestination := destination
+		oldStyler := styler
 
 		defer func() {
 			destination = oldDestination
+			styler = oldStyler
 		}()
 
 		styler = &struct {
@@ -786,12 +793,15 @@ func TestLogNew1(t *testing.T) {
 	// 3 new events are captured and copied to buffers to ensure no mistakes in
 	// what one 'thinks' is in a particular buffer.
 
+	isTestMode = false
+
 	oldDestination := destination
 	oldFallbackDestination := fallbackDestination
 
 	defer func() {
 		destination = oldDestination
 		fallbackDestination = oldFallbackDestination
+		isMinimalAllocations = false // put back to use old events, so as to not damage existing tests
 	}()
 
 	fmt.Println("Testing: 'New Log 1'")

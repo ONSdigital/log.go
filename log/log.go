@@ -423,7 +423,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		return
 	}
 
-	//fmt.Fprintln(destination, "SPEEEEED ...")
+	// Minimum Allocations Event code ...
 	e := EventData2{
 		CreatedAt: time.Now().UTC(),
 		Namespace: Namespace,
@@ -629,13 +629,9 @@ func Event(ctx context.Context, event string, opts ...option) {
 func initEvent() *eventFunc {
 	if flag.Lookup("minimumAllocs") != nil {
 		isMinimalAllocations = true
-		//fmt.Printf("\n\nmin alloccs\n\n")
-		//os.Exit(2)
 	}
 	if b, _ := strconv.ParseBool(os.Getenv("MINIMUM_ALLOC")); b {
 		isMinimalAllocations = true
-		//fmt.Printf("\n\nmin alloccs M\n\n")
-		//os.Exit(3)
 	}
 
 	// If we're in test mode, replace the Event function with one
