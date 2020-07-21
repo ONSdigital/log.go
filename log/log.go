@@ -188,9 +188,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.Method != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("method")
 		buf.WriteByte('"')
@@ -203,9 +202,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.Scheme != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("scheme")
 		buf.WriteByte('"')
@@ -218,9 +216,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.Host != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("host")
 		buf.WriteByte('"')
@@ -233,9 +230,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	// port will always have some value ...
 	if somethingWritten {
 		buf.WriteByte(',')
-	} else {
-		somethingWritten = true
 	}
+	somethingWritten = true
 	buf.WriteByte('"')
 	buf.WriteString("port")
 	buf.WriteByte('"')
@@ -245,9 +241,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.Path != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("path")
 		buf.WriteByte('"')
@@ -260,9 +255,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.Query != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("query")
 		buf.WriteByte('"')
@@ -275,9 +269,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.StartedAt != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("started_at")
 		buf.WriteByte('"')
@@ -290,9 +283,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.EndedAt != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("ended_at")
 		buf.WriteByte('"')
@@ -305,9 +297,8 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.Duration != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("duration")
 		buf.WriteByte('"')
@@ -321,8 +312,6 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	if value.ResponseContentLength != 0 {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
 		buf.WriteByte('"')
 		buf.WriteString("response_content_length")
@@ -334,10 +323,49 @@ func expandHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	buf.WriteByte('}')
 }
 
-//!!! expand Auth struct
-func expandAuthToBuf(buf *bytes.Buffer, value *eventAuth) {
-	json.NewEncoder(buf).Encode(value)
-	buf.Truncate(buf.Len() - 1) // remove the 'new line', as there is more to append
+func expandAuthToBuf(somethingWritten bool, buf *bytes.Buffer, value *eventAuth) {
+	if somethingWritten {
+		buf.WriteByte(',')
+	}
+	if value.Identity != "" || value.IdentityType != "" {
+		var somethingNew bool
+
+		buf.WriteByte('"')
+		buf.WriteString("auth")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		buf.WriteByte('{')
+
+		if value.Identity != "" {
+
+			buf.WriteByte('"')
+			buf.WriteString("identity")
+			buf.WriteByte('"')
+			buf.WriteByte(':')
+			buf.WriteByte('"')
+			buf.WriteString(value.Identity)
+			buf.WriteByte('"')
+
+			somethingNew = true
+		}
+		if value.IdentityType != "" {
+			if somethingNew {
+				buf.WriteByte(',')
+			}
+
+			buf.WriteByte('"')
+			buf.WriteString("identity_type")
+			buf.WriteByte('"')
+			buf.WriteByte(':')
+			buf.WriteByte('"')
+			buf.WriteString(string(value.IdentityType))
+			buf.WriteByte('"')
+		}
+		buf.WriteByte('}')
+	} else {
+		buf.WriteByte('{')
+		buf.WriteByte('}')
+	}
 }
 
 func expandDataToBuf(buf *bytes.Buffer, value *Data) {
@@ -356,9 +384,8 @@ func expandDataToBuf(buf *bytes.Buffer, value *Data) {
 	for k, v := range *value {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 
 		buf.WriteByte('"')
 		buf.WriteString(k) // add the key
@@ -377,8 +404,10 @@ func expandDataToBuf(buf *bytes.Buffer, value *Data) {
 	buf.WriteByte('}')
 }
 
-//!!! expand Error struct
 func expandErrorToBuf(buf *bytes.Buffer, value *EventError) {
+	// Error's are not on the HAPPY HOT-PATH of dp-frontend-router, so
+	// they don't need unrolling - just use the library function.
+	// Also Error's should only be seen outside of production server ...
 	json.NewEncoder(buf).Encode(value)
 	buf.Truncate(buf.Len() - 1) // remove the 'new line', as there is more to append
 }
@@ -490,9 +519,8 @@ func Event(ctx context.Context, event string, opts ...option) {
 	if e.Namespace != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("namespace")
 		buf.WriteByte('"')
@@ -505,9 +533,8 @@ func Event(ctx context.Context, event string, opts ...option) {
 	if e.Event != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("event")
 		buf.WriteByte('"')
@@ -520,9 +547,8 @@ func Event(ctx context.Context, event string, opts ...option) {
 	if e.TraceID != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("trace_id")
 		buf.WriteByte('"')
@@ -535,9 +561,8 @@ func Event(ctx context.Context, event string, opts ...option) {
 	if e.Severity != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("severity")
 		buf.WriteByte('"')
@@ -548,9 +573,8 @@ func Event(ctx context.Context, event string, opts ...option) {
 	if e.HTTP != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("http")
 		buf.WriteByte('"')
@@ -558,26 +582,16 @@ func Event(ctx context.Context, event string, opts ...option) {
 		expandHTTPToBuf(buf, e.HTTP)
 	}
 
-	// run benchmark 6 to see this
 	if e.Auth != nil {
-		if somethingWritten {
-			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
-		}
-		buf.WriteByte('"')
-		buf.WriteString("auth")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
-		expandAuthToBuf(buf, e.Auth)
+		expandAuthToBuf(somethingWritten, buf, e.Auth)
+		somethingWritten = true
 	}
 
 	if e.Data != nil {
 		if somethingWritten {
 			buf.WriteByte(',')
-		} else {
-			somethingWritten = true
 		}
+		somethingWritten = true
 		buf.WriteByte('"')
 		buf.WriteString("data")
 		buf.WriteByte('"')
@@ -585,7 +599,6 @@ func Event(ctx context.Context, event string, opts ...option) {
 		expandDataToBuf(buf, e.Data)
 	}
 
-	// run benchmark 6 to see this
 	if e.Error != nil {
 		if somethingWritten {
 			buf.WriteByte(',')

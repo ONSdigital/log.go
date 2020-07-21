@@ -786,7 +786,7 @@ func BenchmarkLog7(b *testing.B) {
 	}
 }
 
-func TestLogNew1(t *testing.T) {
+func TestLogNew3eventsRouter(t *testing.T) {
 	// Test 3 events that look like what dp-frontend-router issues on the HAPPY HOT-PATH
 	// Get the old events for the 3 and the new events for 3 and compare ...
 	// The 3 old events are captured first and copied to buffers and then the
@@ -804,7 +804,7 @@ func TestLogNew1(t *testing.T) {
 		isMinimalAllocations = false // put back to use old events, so as to not damage existing tests
 	}()
 
-	fmt.Println("Testing: 'New Log 1'")
+	fmt.Println("Testing: 'New Log 3 Events in dp-frontend-router HAPPY HOT-PATH'")
 	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
 		t.Errorf("%v", err)
@@ -849,7 +849,7 @@ func TestLogNew1(t *testing.T) {
 	// into the output, so we do the following:
 	// We have to copy the result into a new buffer because the Fprintln over-writes
 	// the result (what a pain).
-	oldBuffer1 := make([]byte, 0, 1000)
+	oldBuffer1 := make([]byte, 0, 2000)
 	for i := 0; i < len(bytesWritten); i++ {
 		oldBuffer1 = append(oldBuffer1, bytesWritten[i])
 	}
@@ -859,7 +859,7 @@ func TestLogNew1(t *testing.T) {
 		Data{"destination": babbageURL,
 			"proxy_name": "babbage"})
 
-	oldBuffer2 := make([]byte, 0, 1000)
+	oldBuffer2 := make([]byte, 0, 2000)
 	for i := 0; i < len(bytesWritten); i++ {
 		oldBuffer2 = append(oldBuffer2, bytesWritten[i])
 	}
@@ -867,7 +867,7 @@ func TestLogNew1(t *testing.T) {
 	// 3rd Event is like the second one in Middleware()
 	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 
-	oldBuffer3 := make([]byte, 0, 1000)
+	oldBuffer3 := make([]byte, 0, 2000)
 	for i := 0; i < len(bytesWritten); i++ {
 		oldBuffer3 = append(oldBuffer3, bytesWritten[i])
 	}
@@ -880,7 +880,7 @@ func TestLogNew1(t *testing.T) {
 	// 1st Event is like the first one in Middleware()
 	Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
 
-	newBuffer1 := make([]byte, 0, 1000)
+	newBuffer1 := make([]byte, 0, 2000)
 	for i := 0; i < len(bytesWritten); i++ {
 		newBuffer1 = append(newBuffer1, bytesWritten[i])
 	}
@@ -890,7 +890,7 @@ func TestLogNew1(t *testing.T) {
 		Data{"destination": babbageURL,
 			"proxy_name": "babbage"})
 
-	newBuffer2 := make([]byte, 0, 1000)
+	newBuffer2 := make([]byte, 0, 2000)
 	for i := 0; i < len(bytesWritten); i++ {
 		newBuffer2 = append(newBuffer2, bytesWritten[i])
 	}
@@ -898,7 +898,7 @@ func TestLogNew1(t *testing.T) {
 	// 3rd Event is like the second one in Middleware()
 	Event(ctx, "http request completed", HTTP(req2, 200, 4, &start, &end))
 
-	newBuffer3 := make([]byte, 0, 1000)
+	newBuffer3 := make([]byte, 0, 2000)
 	for i := 0; i < len(bytesWritten); i++ {
 		newBuffer3 = append(newBuffer3, bytesWritten[i])
 	}
@@ -946,8 +946,8 @@ func TestLogNew1(t *testing.T) {
 }
 
 func compareEvents(eventNumber string, eventOld []byte, eventNew []byte) error {
-	eventOld = append(eventOld, byte(10)) // add termination for json Unmarshal to know when to stop
-	eventNew = append(eventNew, byte(10)) // add termination for json Unmarshal to know when to stop
+	//eventOld = append(eventOld, byte(10)) // add termination for json Unmarshal to know when to stop
+	//eventNew = append(eventNew, byte(10)) // add termination for json Unmarshal to know when to stop
 
 	var to1, tn1 EventData2
 
@@ -1049,7 +1049,17 @@ func compareEvents(eventNumber string, eventOld []byte, eventNew []byte) error {
 		}
 	}
 
-	// 'Auth' has not been set in any of these events, so it is not tested here
+	if to1.Auth != nil && tn1.Auth != nil {
+		//tn1.Auth.Identity = "" // put this in to 'test' test code
+		eq := reflect.DeepEqual(to1.Auth, tn1.Auth)
+		if !eq {
+			fmt.Printf("old: %+v\n", to1.Auth)
+			fmt.Printf("new: %+v\n", tn1.Auth)
+
+			es := eventNumber + ": 'auth' should be the same"
+			return errors.New(es)
+		}
+	}
 
 	if to1.Data != nil && tn1.Data != nil {
 		// Extract data to map[] for easy printing if there is a problem.
@@ -1080,7 +1090,130 @@ func compareEvents(eventNumber string, eventOld []byte, eventNew []byte) error {
 		}
 	}
 
-	// 'Error'  has not been set in any of these events, so it is not tested here
+	if to1.Error != nil && tn1.Error != nil {
+		//tn1.Error.Error = "" // put this in to 'test' test code
+		eq := reflect.DeepEqual(to1.Error, tn1.Error)
+		if !eq {
+			fmt.Printf("old: %+v\n", to1.Error)
+			fmt.Printf("new: %+v\n", tn1.Error)
+
+			es := eventNumber + ": 'error' should be the same"
+			return errors.New(es)
+		}
+	}
 
 	return nil
+}
+
+func TestLogNew1eventAll(t *testing.T) {
+	// Test 1 event with all options passed.
+	// Get the old event1 and the new event and compare ...
+
+	isTestMode = false
+
+	oldDestination := destination
+	oldFallbackDestination := fallbackDestination
+
+	defer func() {
+		destination = oldDestination
+		fallbackDestination = oldFallbackDestination
+		isMinimalAllocations = false // put back to use old events, so as to not damage existing tests
+	}()
+
+	fmt.Println("Testing: 'New Log 1 All options")
+	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	// NOTE: The gorilla library function registerVars() in pat.go V1.0.1
+	//       adds in the the resulting path that is reverse proxied to.
+	// SO: The following replicates that so that this test more closely
+	//     matches what is seen in dp-frontend-router.
+	req2, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	q := req2.URL.Query()                                                                                                                                                                // Get a copy of the query values.
+	q.Add(":uri", "embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi") // Add a new value to the set.
+	req2.URL.RawQuery = q.Encode()                                                                                                                                                       // Encode and assign back to the original query.
+
+	requestID := newRequestID(16)
+	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestID)
+
+	errToLog := errors.New("test error")
+
+	//	start := time.Now().UTC()
+	//	end := time.Now().UTC()
+	babbageURL, err := url.Parse("http://localhost:8080")
+
+	Namespace = "BenchmarkLog" // force a fixed value as sometimes during testing this changes and does not help when comparing to other tests
+
+	//////////////////////
+	// Capture old event
+
+	isMinimalAllocations = false // use existing Event() code
+
+	eventError := Error(errToLog) // pull this out here to have same 'Line number' in stack trace
+
+	// 1st Event is like the first one in Middleware()
+	// Capture the output of the call to Event()
+	var bytesWritten []byte
+	destination = &writer{func(b []byte) (n int, err error) {
+		bytesWritten = b
+		return len(b), nil
+	}}
+	Event(ctx, "http request received",
+		eventError,
+		HTTP(req, 0, 0, nil, nil),
+		Data{"destination": babbageURL, "proxy_name": "babbage"},
+		Auth(USER, "tester-1"))
+
+	// Converting what has been captured in bytesWritten with string()
+	// puts : !F(MISSING)
+	// into the output, so we do the following:
+	// We have to copy the result into a new buffer because the Fprintln over-writes
+	// the result (what a pain).
+	oldBuffer1 := make([]byte, 0, 2000)
+	for i := 0; i < len(bytesWritten); i++ {
+		oldBuffer1 = append(oldBuffer1, bytesWritten[i])
+	}
+
+	//////////////////////
+	// Capture NEW events
+
+	isMinimalAllocations = true // use new Event() code, for minimum memory allocations
+
+	// 1st Event is like the first one in Middleware()
+	Event(ctx, "http request received",
+		eventError,
+		HTTP(req, 0, 0, nil, nil),
+		Data{"destination": babbageURL, "proxy_name": "babbage"},
+		Auth(USER, "tester-1"))
+
+	newBuffer1 := make([]byte, 0, 2000)
+	for i := 0; i < len(bytesWritten); i++ {
+		newBuffer1 = append(newBuffer1, bytesWritten[i])
+	}
+
+	//////////////////////
+	// Compare old to new
+
+	// The only difference should be in the 'created_at' timestamps
+
+	if err := compareEvents("Event 1", oldBuffer1, newBuffer1); err != nil {
+		o1 := bytes.NewBuffer(oldBuffer1)
+		fmt.Fprintln(oldDestination, "Captured Event OLD 1:")
+		o1.WriteTo(oldDestination) // ignore any error from this as it is not important
+
+		n1 := bytes.NewBuffer(newBuffer1)
+		fmt.Fprintln(oldDestination, "Captured Event NEW 1:")
+		n1.WriteTo(oldDestination)
+
+		t.Errorf("%v", err)
+	}
+}
+
+func TestLogNew3eventsRouterReduced(t *testing.T) {
+	// !!! add comments + code
 }
