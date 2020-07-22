@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var bufPool = sync.Pool{
+var eventBufPool = sync.Pool{
 	New: func() interface{} {
 		return &bytes.Buffer{} // this is the same as return new(bytes.Buffer)
 	},
@@ -146,9 +146,62 @@ func unrollInt64(buf *bytes.Buffer, n int64) {
 	}
 }
 
+func unrollCreatedAt(buf *bytes.Buffer, value time.Time) {
+	buf.WriteByte('"')
+	buf.WriteString("created_at")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+	buf.WriteByte('"')
+	unrollTimeToBuf(buf, value)
+	buf.WriteByte('"')
+}
+
+func unrollNamespace(buf *bytes.Buffer, value string) {
+	buf.WriteByte('"')
+	buf.WriteString("namespace")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+	buf.WriteByte('"')
+	buf.WriteString(value)
+	buf.WriteByte('"')
+}
+
+func unrollEvent(buf *bytes.Buffer, value string) {
+	buf.WriteByte('"')
+	buf.WriteString("event")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+	buf.WriteByte('"')
+	buf.WriteString(value)
+	buf.WriteByte('"')
+}
+
+func unrollTraceId(buf *bytes.Buffer, value string) {
+	buf.WriteByte('"')
+	buf.WriteString("trace_id")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+	buf.WriteByte('"')
+	buf.WriteString(value)
+	buf.WriteByte('"')
+}
+
+func unrollSeverity(buf *bytes.Buffer, value int) {
+	buf.WriteByte('"')
+	buf.WriteString("severity")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+	unrollInt(buf, value)
+}
+
 func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 	// We know what the '*EventHTTP' is, so its contents can be directly
 	// extracted ...
+	buf.WriteByte('"')
+	buf.WriteString("http")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+
 	buf.WriteByte('{')
 
 	var somethingWritten bool
@@ -356,6 +409,12 @@ func unrollDataToBuf(buf *bytes.Buffer, value *Data) {
 	// interface{} ?)
 	// ODD'ly: sometimes the 'proxy_name' is output before the 'destination' - go figure ?
 	var somethingWritten bool
+
+	buf.WriteByte('"')
+	buf.WriteString("data")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+
 	buf.WriteByte('{')
 	for k, v := range *value {
 		if somethingWritten {
@@ -384,6 +443,11 @@ func unrollErrorToBuf(buf *bytes.Buffer, value *EventError) {
 	// Error's are not on the HAPPY HOT-PATH of dp-frontend-router, so
 	// they don't need unrolling - just use the library function.
 	// Also Error's should only be seen outside of production server ...
+	buf.WriteByte('"')
+	buf.WriteString("error")
+	buf.WriteByte('"')
+	buf.WriteByte(':')
+
 	json.NewEncoder(buf).Encode(value)
 	buf.Truncate(buf.Len() - 1) // remove the 'new line', as there is more to append
 }

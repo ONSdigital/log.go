@@ -124,19 +124,13 @@ func Event(ctx context.Context, event string, opts ...option) {
 
 	var somethingWritten bool
 
-	buf := bufPool.Get().(*bytes.Buffer) // with casting on the end
-	buf.Reset()                          // Must reset before each block of usage
+	buf := eventBufPool.Get().(*bytes.Buffer) // with casting on the end
+	buf.Reset()                               // Must reset before each block of usage
 
 	buf.WriteByte('{')
 	if !e.CreatedAt.IsZero() {
 		somethingWritten = true
-		buf.WriteByte('"')
-		buf.WriteString("created_at")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
-		buf.WriteByte('"')
-		unrollTimeToBuf(buf, e.CreatedAt)
-		buf.WriteByte('"')
+		unrollCreatedAt(buf, e.CreatedAt)
 	}
 
 	if e.Namespace != "" {
@@ -144,13 +138,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		buf.WriteByte('"')
-		buf.WriteString("namespace")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
-		buf.WriteByte('"')
-		buf.WriteString(e.Namespace)
-		buf.WriteByte('"')
+		unrollNamespace(buf, e.Namespace)
 	}
 
 	if e.Event != "" {
@@ -158,13 +146,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		buf.WriteByte('"')
-		buf.WriteString("event")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
-		buf.WriteByte('"')
-		buf.WriteString(e.Event)
-		buf.WriteByte('"')
+		unrollEvent(buf, e.Event)
 	}
 
 	if e.TraceID != "" {
@@ -172,13 +154,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		buf.WriteByte('"')
-		buf.WriteString("trace_id")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
-		buf.WriteByte('"')
-		buf.WriteString(e.TraceID)
-		buf.WriteByte('"')
+		unrollTraceId(buf, e.TraceID)
 	}
 
 	if e.Severity != nil {
@@ -186,11 +162,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		buf.WriteByte('"')
-		buf.WriteString("severity")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
-		unrollInt(buf, int(*e.Severity))
+		unrollSeverity(buf, int(*e.Severity))
 	}
 
 	if e.HTTP != nil {
@@ -198,10 +170,6 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		buf.WriteByte('"')
-		buf.WriteString("http")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
 		unrollHTTPToBuf(buf, e.HTTP)
 	}
 
@@ -215,10 +183,6 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		buf.WriteByte('"')
-		buf.WriteString("data")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
 		unrollDataToBuf(buf, e.Data)
 	}
 
@@ -226,10 +190,6 @@ func Event(ctx context.Context, event string, opts ...option) {
 		if somethingWritten {
 			buf.WriteByte(',')
 		}
-		buf.WriteByte('"')
-		buf.WriteString("error")
-		buf.WriteByte('"')
-		buf.WriteByte(':')
 		unrollErrorToBuf(buf, e.Error)
 	}
 
@@ -258,7 +218,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 		}
 	}
 
-	bufPool.Put(buf)
+	eventBufPool.Put(buf)
 }
 
 // this is called before main()
