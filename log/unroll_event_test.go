@@ -517,7 +517,7 @@ func TestLogNew1eventAll(t *testing.T) {
 		bytesWritten = b
 		return len(b), nil
 	}}
-	Event(ctx, "http request received", severity(INFO),
+	Event(ctx, "http request received",
 		eventError,
 		HTTP(req, 0, 0, nil, nil),
 		Data{"destination": babbageURL, "proxy_name": "babbage"},
@@ -539,7 +539,7 @@ func TestLogNew1eventAll(t *testing.T) {
 	isMinimalAllocations = true // use new Event() code, for minimum memory allocations
 
 	// 1st Event is like the first one in Middleware()
-	Event(ctx, "http request received", severity(INFO),
+	Event(ctx, "http request received",
 		eventError,
 		HTTP(req, 0, 0, nil, nil),
 		Data{"destination": babbageURL, "proxy_name": "babbage"},
