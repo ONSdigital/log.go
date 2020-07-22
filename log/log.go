@@ -332,6 +332,10 @@ func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
 	var optMap = make(map[string]struct{})
 	for _, o := range opts {
 		t := reflect.TypeOf(o)
+		if t.Kind() == reflect.Ptr { // this needed to test calls from Event()
+			t = t.Elem()
+		}
+
 		p := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
 		if _, ok := optMap[p]; ok {
 			panic("can't pass in the same parameter type multiple times: " + p)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -517,7 +518,16 @@ func TestLogNew1eventAll(t *testing.T) {
 		bytesWritten = b
 		return len(b), nil
 	}}
-	Event(ctx, "http request received",
+
+	// Compiler go1.12 manages to call initEvent() when test code is run with the
+	// 'test.v' flag set ...
+	// BUT go1.14.6 does not have the flag 'test.v' set before initEvent() is called
+	// so ... in order for the following call to Event() to utilise the
+	// function eventWithOptionsCheck() we need to do the check again ...
+	if flag.Lookup("test.v") != nil {
+		eventFuncInst = initEvent()
+	}
+	Event(ctx, "http request received", INFO,
 		eventError,
 		HTTP(req, 0, 0, nil, nil),
 		Data{"destination": babbageURL, "proxy_name": "babbage"},
@@ -539,7 +549,7 @@ func TestLogNew1eventAll(t *testing.T) {
 	isMinimalAllocations = true // use new Event() code, for minimum memory allocations
 
 	// 1st Event is like the first one in Middleware()
-	Event(ctx, "http request received",
+	Event(ctx, "http request received", INFO,
 		eventError,
 		HTTP(req, 0, 0, nil, nil),
 		Data{"destination": babbageURL, "proxy_name": "babbage"},
