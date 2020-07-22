@@ -42,6 +42,11 @@ func newRequestID(size int) string {
 }
 
 func BenchmarkLog1(b *testing.B) {
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	fmt.Println("Benchmarking: 'Log'")
 	errToLog := errors.New("test error")
 	message1 := "Benchmark test"
@@ -98,6 +103,11 @@ ok  	github.com/ONSdigital/log.go/log	282.637s
 */
 
 func BenchmarkLog2(b *testing.B) {
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	fmt.Println("Benchmarking: 'Log - o.attach'")
 	err := errors.New("test error")
 	message1 := "m1"
@@ -134,6 +144,11 @@ func BenchmarkLog2(b *testing.B) {
 }
 
 func BenchmarkLog3(b *testing.B) {
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	fmt.Println("Benchmarking: 'Log - switch'")
 	err := errors.New("test error")
 	message1 := "m1"
@@ -186,6 +201,11 @@ func BenchmarkLog3(b *testing.B) {
 }
 
 func BenchmarkLog4(b *testing.B) {
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	fmt.Println("Benchmarking: 'Log'")
 	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
@@ -233,6 +253,11 @@ func BenchmarkLog4(b *testing.B) {
 }
 
 func BenchmarkLog5(b *testing.B) {
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	fmt.Println("Benchmarking: 'Log'")
 	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {
@@ -280,6 +305,11 @@ func BenchmarkLog5(b *testing.B) {
 }
 
 func BenchmarkLog6(b *testing.B) {
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	fmt.Println("Benchmarking: 'Log'")
 	errToLog := errors.New("test error")
 	message1 := "Benchmark test"
@@ -316,6 +346,11 @@ func BenchmarkLog6(b *testing.B) {
 }
 
 func BenchmarkLog7(b *testing.B) {
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	fmt.Println("Benchmarking: 'Log'")
 	req, err := http.NewRequest("GET", "http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi", nil)
 	if err != nil {

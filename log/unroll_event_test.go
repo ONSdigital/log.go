@@ -137,6 +137,11 @@ func TestLogNew3eventsRouter(t *testing.T) {
 	// 3 new events are captured and copied to buffers to ensure no mistakes in
 	// what one 'thinks' is in a particular buffer.
 
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	isTestMode = false
 
 	oldDestination := destination
@@ -453,6 +458,11 @@ func TestLogNew1eventAll(t *testing.T) {
 	// Test 1 event with all options passed.
 	// Get the old event1 and the new event and compare ...
 
+	oldNamespace := Namespace
+	defer func() {
+		Namespace = oldNamespace // this needed for other test functions
+	}()
+
 	isTestMode = false
 
 	oldDestination := destination
@@ -507,7 +517,7 @@ func TestLogNew1eventAll(t *testing.T) {
 		bytesWritten = b
 		return len(b), nil
 	}}
-	Event(ctx, "http request received",
+	Event(ctx, "http request received", INFO,
 		eventError,
 		HTTP(req, 0, 0, nil, nil),
 		Data{"destination": babbageURL, "proxy_name": "babbage"},
@@ -529,7 +539,7 @@ func TestLogNew1eventAll(t *testing.T) {
 	isMinimalAllocations = true // use new Event() code, for minimum memory allocations
 
 	// 1st Event is like the first one in Middleware()
-	Event(ctx, "http request received",
+	Event(ctx, "http request received", INFO,
 		eventError,
 		HTTP(req, 0, 0, nil, nil),
 		Data{"destination": babbageURL, "proxy_name": "babbage"},
