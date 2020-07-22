@@ -1217,3 +1217,117 @@ func TestLogNew1eventAll(t *testing.T) {
 func TestLogNew3eventsRouterReduced(t *testing.T) {
 	// !!! add comments + code
 }
+
+func TestLogNewExpansionFuncs(t *testing.T) {
+	buf := &bytes.Buffer{}
+	Convey("expandIntToBuf2", t, func() {
+		type nums struct {
+			Number int
+			Text   string
+		}
+
+		array := []nums{
+			{0, "00"}, {1, "01"}, {2, "02"}, {3, "03"}, {4, "04"},
+			{5, "05"}, {6, "06"}, {7, "07"}, {8, "08"}, {9, "09"},
+			{10, "10"}, {11, "11"}, {23, "23"}, {34, "34"}, {45, "45"},
+			{56, "56"}, {67, "67"}, {78, "78"}, {89, "89"}, {99, "99"},
+			{100, "00"},
+		}
+		for _, v := range array {
+			expandIntToBuf2(buf, v.Number)
+			So(buf.String(), ShouldEqual, v.Text)
+			buf.Reset()
+		}
+	})
+
+	Convey("expandIntToBuf4", t, func() {
+		type nums struct {
+			Number int
+			Text   string
+		}
+
+		array := []nums{
+			{0, "0000"}, {1, "0001"}, {2, "0002"}, {3, "0003"}, {4, "0004"},
+			{5, "0005"}, {6, "0006"}, {7, "0007"}, {8, "0008"}, {9, "0009"},
+			{10, "0010"}, {11, "0011"}, {23, "0023"}, {34, "0034"}, {45, "0045"},
+			{56, "0056"}, {67, "0067"}, {78, "0078"}, {89, "0089"}, {99, "0099"},
+			{100, "0100"}, {203, "0203"}, {1100, "1100"}, {8765, "8765"}, {9999, "9999"},
+			{10000, "0000"},
+		}
+		for _, v := range array {
+			expandIntToBuf4(buf, v.Number)
+			So(buf.String(), ShouldEqual, v.Text)
+			buf.Reset()
+		}
+	})
+
+	Convey("expandIntToBuf9", t, func() {
+		type nums struct {
+			Number int
+			Text   string
+		}
+
+		array := []nums{
+			{123456789, "123456789Z"},
+			{123456780, "12345678Z"},
+			{123456700, "1234567Z"},
+			{123456000, "123456Z"},
+			{123450000, "12345Z"},
+			{123400000, "1234Z"},
+			{123000000, "123Z"},
+			{120000000, "12Z"},
+			{100000000, "1Z"},
+			{000000000, "0Z"},
+			{000000001, "000000001Z"},
+		}
+		buf.Reset()
+		for _, v := range array {
+			expandIntToBuf9(buf, v.Number)
+			So(buf.String(), ShouldEqual, v.Text)
+			buf.Reset()
+		}
+	})
+
+	Convey("expandInt", t, func() {
+		type nums struct {
+			Number int
+			Text   string
+		}
+
+		array := []nums{
+			{0, "0"}, {1, "1"}, {2, "2"}, {3, "3"}, {4, "4"},
+			{5, "5"}, {6, "6"}, {7, "7"}, {8, "8"}, {9, "9"},
+			{10, "10"}, {11, "11"}, {23, "23"}, {34, "34"}, {45, "45"},
+			{56, "56"}, {67, "67"}, {78, "78"}, {89, "89"}, {99, "99"},
+			{100, "100"}, {-1, "-1"}, {-9923, "-9923"},
+			{1234567890, "1234567890"},
+		}
+		for _, v := range array {
+			expandInt(buf, v.Number)
+			So(buf.String(), ShouldEqual, v.Text)
+			buf.Reset()
+		}
+	})
+
+	Convey("expandInt64", t, func() {
+		type nums struct {
+			Number int64
+			Text   string
+		}
+
+		array := []nums{
+			{0, "0"}, {1, "1"}, {2, "2"}, {3, "3"}, {4, "4"},
+			{5, "5"}, {6, "6"}, {7, "7"}, {8, "8"}, {9, "9"},
+			{10, "10"}, {11, "11"}, {23, "23"}, {34, "34"}, {45, "45"},
+			{56, "56"}, {67, "67"}, {78, "78"}, {89, "89"}, {99, "99"},
+			{100, "100"}, {-1, "-1"}, {-9923, "-9923"},
+			{1234567890, "1234567890"}, {1234567890123456789, "1234567890123456789"},
+		}
+		for _, v := range array {
+			expandInt64(buf, v.Number)
+			So(buf.String(), ShouldEqual, v.Text)
+			buf.Reset()
+		}
+	})
+
+}

@@ -42,6 +42,7 @@ var bufPool = sync.Pool{
 	},
 }
 
+// expandIntToBuf2 writes lowest 2 characters of int to buffer
 func expandIntToBuf2(buf *bytes.Buffer, value int) {
 	c1 := byte((value % 10) + '0')
 	c2 := byte(((value / 10) % 10) + '0')
@@ -49,6 +50,7 @@ func expandIntToBuf2(buf *bytes.Buffer, value int) {
 	buf.WriteByte(c1)
 }
 
+// expandIntToBuf4 writes lowest 4 characters of int to buffer
 func expandIntToBuf4(buf *bytes.Buffer, value int) {
 	c1 := byte((value % 10) + '0')
 	value = value / 10
@@ -63,10 +65,11 @@ func expandIntToBuf4(buf *bytes.Buffer, value int) {
 	buf.WriteByte(c1)
 }
 
+// expandIntToBuf9 converts int to upto 9 digit string with trailling zero's dropped
+// but leaving one zero if the number is zero, and tags a 'Z' on the end.
+// Assumes the number is positive.
 func expandIntToBuf9(buf *bytes.Buffer, value int) {
 	var out [11]byte
-
-	//value2 := value
 
 	out[8] = byte((value % 10) + '0')
 	value = value / 10
@@ -116,6 +119,7 @@ func expandTimeToBuf(buf *bytes.Buffer, value time.Time) {
 	expandIntToBuf9(buf, int(value.Nanosecond()))
 }
 
+// expandInt writes character version of int to buffer
 func expandInt(buf *bytes.Buffer, n int) {
 	var out [15]byte
 	var c int
@@ -143,6 +147,7 @@ func expandInt(buf *bytes.Buffer, n int) {
 	}
 }
 
+// expandInt64 writes character version of int64 to buffer
 func expandInt64(buf *bytes.Buffer, n int64) {
 	var out [25]byte
 	var c int
