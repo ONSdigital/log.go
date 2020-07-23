@@ -154,7 +154,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		unrollTraceId(buf, e.TraceID)
+		unrollTraceID(buf, e.TraceID)
 	}
 
 	if e.Severity != nil {
@@ -170,7 +170,7 @@ func Event(ctx context.Context, event string, opts ...option) {
 			buf.WriteByte(',')
 		}
 		somethingWritten = true
-		unrollHTTPToBuf(buf, e.HTTP)
+		unrollHTTPToBuf(buf, e.HTTP, true, true, true, true, true, true)
 	}
 
 	if e.Auth != nil {
