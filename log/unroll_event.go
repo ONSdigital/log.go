@@ -176,7 +176,7 @@ func unrollEvent(buf *bytes.Buffer, value string) {
 	buf.WriteByte('"')
 }
 
-func unrollTraceId(buf *bytes.Buffer, value string) {
+func unrollTraceID(buf *bytes.Buffer, value string) {
 	buf.WriteByte('"')
 	buf.WriteString("trace_id")
 	buf.WriteByte('"')
@@ -194,7 +194,9 @@ func unrollSeverity(buf *bytes.Buffer, value int) {
 	unrollInt(buf, value)
 }
 
-func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
+func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP,
+	showMethod bool, showScheme bool, showHost bool,
+	showPort bool, showPath bool, showQuery bool) {
 	// We know what the '*EventHTTP' is, so its contents can be directly
 	// extracted ...
 	buf.WriteByte('"')
@@ -214,7 +216,7 @@ func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		somethingWritten = true
 	}
 
-	if value.Method != "" {
+	if showMethod && value.Method != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
 		}
@@ -228,7 +230,7 @@ func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		buf.WriteByte('"')
 	}
 
-	if value.Scheme != "" {
+	if showScheme && value.Scheme != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
 		}
@@ -242,7 +244,7 @@ func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		buf.WriteByte('"')
 	}
 
-	if value.Host != "" {
+	if showHost && value.Host != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
 		}
@@ -256,18 +258,20 @@ func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		buf.WriteByte('"')
 	}
 
-	// port will always have some value ...
-	if somethingWritten {
-		buf.WriteByte(',')
+	if showPort {
+		// port will always have some value ...
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		somethingWritten = true
+		buf.WriteByte('"')
+		buf.WriteString("port")
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		unrollInt(buf, value.Port)
 	}
-	somethingWritten = true
-	buf.WriteByte('"')
-	buf.WriteString("port")
-	buf.WriteByte('"')
-	buf.WriteByte(':')
-	unrollInt(buf, value.Port)
 
-	if value.Path != "" {
+	if showPath && value.Path != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
 		}
@@ -281,7 +285,7 @@ func unrollHTTPToBuf(buf *bytes.Buffer, value *EventHTTP) {
 		buf.WriteByte('"')
 	}
 
-	if value.Query != "" {
+	if showQuery && value.Query != "" {
 		if somethingWritten {
 			buf.WriteByte(',')
 		}

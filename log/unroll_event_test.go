@@ -577,7 +577,3 @@ func TestLogNew1eventAll(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 }
-
-func TestLogNew3eventsRouterReduced(t *testing.T) {
-	// !!! add comments + code
-}

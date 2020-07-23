@@ -663,3 +663,129 @@ This shortens the original amount of allocations to 6610 and adjusts the savings
 
 850 / 6610 = 0.129% which is a saving of 87.1%
 
+-=-=-
+
+21st July 2020
+
+upgraded to go1.14.6 at 2PM
+
+-=-=-
+
+22nd July 2020
+
+Add tests, refactor, have hassle with Travis (looks like its using g1.12 & i'm using go1.14.6 and there is some differences when
+testing - see commit comments for fix).
+
+-=-=-
+
+23rd July 2020
+
+Stage 9:
+
+dp-frontend-router: shorten Log => Save Money
+
+New code added and applied to log/middleware.go and the following needs adding to dp-frontend-router's main.go:
+
+Just before main():
+
+var isMinimalAllocations bool = checkMinimumAlloc()
+
+func checkMinimumAlloc() bool {
+	if b, _ := strconv.ParseBool(os.Getenv("MINIMUM_ALLOC")); b {
+		return true
+	}
+	return false
+}
+
+and in function createReverseProxy() change code to:
+
+			if isMinimalAllocations == false {
+				log.Event(req.Context(), "proxying request", log.INFO, log.HTTP(req, 0, 0, nil, nil), log.Data{
+					"destination": proxyURL,
+					"proxy_name":  proxyName,
+				})
+			} else {
+				log.SaveMoneyEvent2(req.Context(), "proxying request", log.INFO, log.HTTP(req, 0, 0, nil, nil), log.Data{
+					"destination": proxyURL,
+					"proxy_name":  "babbage"})
+			}
+
+-=-
+
+Build dp-frontend-router with the new log library and the above changes and test as per "stage 2"
+
+You will find PDF's showing results of various runs of dp-frontend-router.
+
+f-old-gc10.pdf	- old event code with Garbage Collector set to 10
+
+f-new-gc10.pdf	- new event code with Garbage Collector set to 10
+
+f-save-gc10.pdf	- using SaveMoneyEvent's event code with Garbage Collector set to 10
+
+f-save-gc40.pdf	- using SaveMoneyEvent's event code with Garbage Collector set to 40
+
+Comparing these to the PDF's whose name starts with the letter 'e' ... they look quite different.
+
+I suspect the garbage collector has been changed in go1.14.6 and is now working a lot harder because the latest code
+also looks like it is servicing about half the number of requests per second (still a lot).
+
+This reduction in the amount of requests may be down to something else all together that has changed in the latest version
+of go and it's libraries.
+
+-=-
+
+Benchmarking the new SaveMoneyEvents with:
+
+	go test -run=unroll_event_benchmark_test.go -bench=LogSave -memprofile=mem0.out
+
+shows the overall bytes allocated has dropped further to 762, which makes the savings:
+
+762 / 6610 = 0.115% which is a saving of 88.5%
+
+-=-=-
+
+Running a test function that is set up to show the amount of characters saved from writting to the log file with:
+
+	go test -v -count=1 -race -cover -run TestLogSaveMoneyEventSavings ./...
+
+Gives the following output:
+
+-=-=-
+
+=== RUN   TestLogSaveMoneyEventSavings
+Testing: 'New Log 3 Events in dp-frontend-router HAPPY HOT-PATH'
+Event 1 : old Length: 445, new Length: 397
+OLD 1:
+{"created_at":"2020-07-23T16:48:20.803704833Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-23T16:48:20.803677687Z"}}
+
+NEW 1:
+{"created_at":"2020-07-23T16:48:20.806229973Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-23T16:48:20.803677687Z"}}
+
+Event 2 : old Length: 782, new Length: 518
+OLD 2:
+{"created_at":"2020-07-23T16:48:20.805436509Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+
+NEW 2:
+{"created_at":"2020-07-23T16:48:20.806400956Z","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+
+Event 2 : old Length: 727, new Length: 208
+OLD 3:
+{"created_at":"2020-07-23T16:48:20.805979238Z","namespace":"BenchmarkLog","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-23T16:48:20.803677687Z","ended_at":"2020-07-23T16:48:20.8036788Z","duration":1113,"response_content_length":4}}
+
+NEW 3:
+{"created_at":"2020-07-23T16:48:20.806607904Z","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"ended_at":"2020-07-23T16:48:20.8036788Z","response_content_length":4}}
+
+Initial totals old: 1954, new 1123
+In these tests, unfortunately the following appears in the old events:
+"scheme":"http","host":"localhost","port":20000
+  which may not be in the logs from dp-frontend-router.So, removing the length of the 'extra' info from the old events ...
+FINAL totals old: 1813, new 1123
+
+  ****  Thats a saving of 38.1%  ****
+
+--- PASS: TestLogSaveMoneyEventSavings (0.00s)
+
+
+-=-=-
+
+
