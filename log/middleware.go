@@ -33,7 +33,10 @@ func Middleware(f http.Handler) http.Handler {
 		if isMinimalAllocations == false {
 			Event(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
 		} else {
-			SaveMoneyEvent1(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
+			//SaveMoneyEvent1(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
+			CustomSaveMoneyEvent1(req.Context(), "http request received",
+				req, 0, 0,
+				&start, nil)
 		}
 		defer func() {
 			end := time.Now().UTC()
@@ -46,7 +49,10 @@ func Middleware(f http.Handler) http.Handler {
 				Event(req.Context(), "http request completed", HTTP(req, statusCode, rc.bytesWritten, &start, &end))
 			} else {
 				// NOTE: &start is not passed as part of the savings
-				SaveMoneyEvent3(req.Context(), "http request completed", HTTP(req, statusCode, rc.bytesWritten, nil, &end))
+				//SaveMoneyEvent3(req.Context(), "http request completed", HTTP(req, statusCode, rc.bytesWritten, nil, &end))
+				CustomSaveMoneyEvent3(req.Context(), "http request completed",
+					req, statusCode, rc.bytesWritten,
+					nil, &end)
 			}
 		}()
 

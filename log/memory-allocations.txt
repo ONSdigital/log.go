@@ -788,4 +788,57 @@ FINAL totals old: 1813, new 1123
 
 -=-=-
 
+4th Aug 2020
+
+Stage 10: Custom Events to achieve 100% reduction in HEAP Allocations
+
+Add CustomSaveMoney functions to eliminate ALL HEAP Allocations from the 3 log functions that are on the HAPPY HOT-PATH
+of dp-frontend-router.
+
+Add BenchmarkLogCustomSave() to demonstrate no Allocations, run with:
+
+	go test -run=unroll_event_benchmark_test.go -bench=LogCustomSave -memprofile=mem0.out
+
+This has a FINAL output report of:
+
+	14152	     77910 ns/op	       0 B/op	       0 allocs/op
+
+And the original code can be benchmarked with:
+
+	go test -run=unroll_event_benchmark_test.go -bench=Log5 -memprofile=mem0.out
+
+And this reports:
+
+	7453	    168863 ns/op	    6611 B/op	      45 allocs/op
+
+
+Which shows that the final code runs somewhat faster than the original code - enabling more requests per second to be handled.
+
+
+Add TestLogCustomSaveMoneyEvents() to test SaveMoneyEvent functions agains new CustomSaveMoneyEvent functions, run with:
+
+	go test -v -count=1 -cover -run TestLogCustomSaveMoneyEvents ./...
+
+-=-=-
+
+Running this new code in dp-frontend-router does not show any further noticable improvement in reducing average
+Heap allocations during stress load tests.
+
+In dp-frontend-router's main.go, replace the previous call to new function: SaveMoneyEvent2()
+
+with:
+
+	log.CustomSaveMoneyEvent2(req.Context(), "proxying request", log.INFO,
+					req, 0, 0,
+					"destination", proxyURL,
+					"proxy_name", "proxyName")
+
+-=-=-
+
+
+The FINAL code with logging ~38% less runs over twice as fast.
+
+
+Should this ever be used in production, it will need full testing and possibly some adjustments to for any
+specific requirements.
 
