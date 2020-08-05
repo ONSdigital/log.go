@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ONSdigital/go-ns/common"
+	request "github.com/ONSdigital/dp-net/request"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -178,11 +178,11 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
-			ctx := common.WithRequestId(context.Background(), "trace ID")
+			ctx := request.WithRequestId(context.Background(), "trace ID")
 			evt := createEvent(ctx, "event")
 			So(evt.TraceID, ShouldEqual, "trace ID")
 
-			ctx = common.WithRequestId(context.Background(), "another ID")
+			ctx = request.WithRequestId(context.Background(), "another ID")
 			evt = createEvent(ctx, "event")
 			So(evt.TraceID, ShouldEqual, "another ID")
 		})

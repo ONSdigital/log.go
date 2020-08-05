@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ONSdigital/go-ns/common"
+	request "github.com/ONSdigital/dp-net/request"
 	prettyjson "github.com/hokaccha/go-prettyjson"
 )
 
@@ -179,7 +179,7 @@ func createEvent(ctx context.Context, event string, opts ...option) *EventData {
 	}
 
 	if ctx != nil {
-		e.TraceID = common.GetRequestId(ctx)
+		e.TraceID = request.GetRequestId(ctx)
 	}
 
 	// loop around each log option and call its attach method, which takes care
