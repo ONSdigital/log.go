@@ -6,27 +6,30 @@ A log library for Go.
 Opinionated, and designed to match our [logging standards](https://github.com/ONSdigital/dp/blob/master/standards/LOGGING_STANDARDS.md).
 
 ### Getting started
-Get the code
+Get the code:
 ```
 git clone git@github.com:ONSdigital/log.go.git
 ```
+**Note:** `log.go` is a Go Module so should be cloned outside your `$GOPATH`.
 
-### Usage
+### Set up
 **Formatted output**
 
 To output logs in human readable format set the following environment var:
-```
+```bash
 HUMAN_LOG=1
 ```
 
-:warning: This is for local dev use only. You should not add this to the `Makefile` as it will interfere with how Kibana
-parsed the log files.
+:warning: **This is for local dev use only** - DP developers should not enable human readable log output for apps running 
+in an environment.
 
 **namespace**
 
-We strongly recommend one of the first things the `main` func of your application does is set the log `namespace`. 
-Doing so will ensure that all log events will be indexed correctly by Kibana. By convention the namespace should be the 
-full repo name i.e. `dp-dataset-api`
+We recommend the first thing your `main` func does is to set the log `namespace`. Doing so will ensure that all log 
+events will be indexed correctly by Kibana. By convention the namespace should be the full repo name i.e. `dp-dataset-api`
+
+
+### Logging events
 
 ```go
     // setting the namespace should be one of the first things done in main. 
