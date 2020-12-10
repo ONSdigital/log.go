@@ -13,8 +13,6 @@ git clone git@github.com:ONSdigital/log.go.git
 **Note:** `log.go` is a Go Module so should be cloned outside your `$GOPATH`.
 
 ### Set up
-**Formatted output**
-
 To output logs in human readable format set the following environment var:
 ```bash
 HUMAN_LOG=1
@@ -23,27 +21,59 @@ HUMAN_LOG=1
 :warning: **This is for local dev use only** - DP developers should not enable human readable log output for apps running 
 in an environment.
 
-**namespace**
-
-We recommend the first thing your `main` func does is to set the log `namespace`. Doing so will ensure that all log 
+### Logging events
+We recommend the first thing your `main` func does is to set the log `namespace`. Doing so will ensure that all log
 events will be indexed correctly by Kibana. By convention the namespace should be the full repo name i.e. `dp-dataset-api`
 
-
-### Logging events
-
 ```go
-    // setting the namespace should be one of the first things done in main. 
-    log.Namespace = "dp-logging-example"
-```
-	
-	// Log an INFO message with 
-    log.Event(context.Background(), "info message with additional data", log.INFO, log.Data{
-        "additional_data1": "value1",
-        "additional_data2": "value2",
-        "additional_data3": "value3",
-    })
-```
+package main
 
+import (
+	"context"
+	"errors"
+
+	"github.com/ONSdigital/log.go/log"
+)
+
+func main() {
+	// Set the log namespace
+	log.Namespace = "dp-logging-example"
+
+	// Log an INFO event
+	log.Event(context.Background(), "info message with no additional data", log.INFO)
+
+	// Log an INFO event with additional parameters
+	log.Event(context.Background(), "info message with additional data", log.INFO, log.Data{
+		"parma1": "value1",
+		"parma2": "value2",
+		"parma3": "value3",
+	})
+
+	// an example error
+	err := errors.New("something went wrong")
+
+	// Log an ERROR event
+	log.Event(context.Background(), "unexpected error", log.ERROR, log.Error(err))
+
+	// Log an ERROR event with additional parameters
+	log.Event(context.Background(), "unexpected error", log.ERROR, log.Error(err), log.Data{
+		"additional_data": "some value",
+	})
+}
+```
+**Notes:**
+
+- `context` can be nil however it's recommended to provide a `ctx` value if you have it available - internally 
+  `log.Event()` will automatically extract certain common fields (e.g. request IDs, http details) if they exist and add 
+  them to the `log.Data` parameters map - this helps to ensure events contain as much useful information as possible.
+  
+
+- The `event` string should be a generic consistent message e.g. `http request received`. It should not format 
+  additional values - these should be added to `log.Data` (see logging standards doc for a comprehensive overview).
+  
+
+- The `log.Event()` interface does not require you to provide an event level but it's recommended you provide this 
+  field if possible/where appropriate.
 
 ### Scripts
 
