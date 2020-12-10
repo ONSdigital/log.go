@@ -25,6 +25,122 @@ in an environment.
 We recommend the first thing your `main` func does is to set the log `namespace`. Doing so will ensure that all log
 events will be indexed correctly by Kibana. By convention the namespace should be the full repo name i.e. `dp-dataset-api`
 
+Set the namespace:
+```go
+// Set the log namespace
+log.Namespace = "dp-logging-example"
+```
+
+Logging an INFO event example:
+```go
+// Log an INFO event
+log.Event(context.Background(), "info message with no additional data", log.INFO)
+```
+```json
+{
+  "created_at": "2020-12-10T11:16:39.155843Z",
+  "event": "info message with no additional data",
+  "namespace": "dp-logging-example",
+  "severity": 3
+}
+```
+Logging an INFO event with additional parameters example:
+```go
+// Log an INFO event with additional parameters
+log.Event(context.Background(), "info message with additional data", log.INFO, log.Data{
+    "parma1": "value1",
+    "parma2": "value2",
+    "parma3": "value3",
+})
+```
+
+```json
+{
+  "created_at": "2020-12-10T11:16:39.156147Z",
+  "data": {
+    "additional_data1": "value1",
+    "additional_data2": "value2",
+    "additional_data3": "value3"
+  },
+  "event": "info message with additional data",
+  "namespace": "dp-logging-example",
+  "severity": 3
+}
+```
+Logging an ERROR event example:
+```go
+// Log an ERROR event
+log.Event(context.Background(), "unexpected error", log.ERROR, log.Error(err))
+```
+```json
+{
+  "created_at": "2020-12-10T11:16:39.156205Z",
+  "error": {
+    "data": {},
+    "error": "something went wrong",
+    "stack_trace": [
+      {
+        "file": "/Users/dave/Development/go/ons/log.go/example/main.go",
+        "function": "main.main",
+        "line": 27
+      },
+      {
+        "file": "/usr/local/Cellar/go/1.15.2/libexec/src/runtime/proc.go",
+        "function": "runtime.main",
+        "line": 204
+      },
+      {
+        "file": "/usr/local/Cellar/go/1.15.2/libexec/src/runtime/asm_amd64.s",
+        "function": "runtime.goexit",
+        "line": 1374
+      }
+    ]
+  },
+  "event": "unexpected error",
+  "namespace": "dp-logging-example",
+  "severity": 1
+}
+```
+Logging an ERROR event with additional parameters example:
+```go
+// Log an ERROR event with additional parameters
+log.Event(context.Background(), "unexpected error", log.ERROR, log.Error(err), log.Data{
+    "additional_data": "some value",
+})
+```
+```json
+{
+  "created_at": "2020-12-10T11:16:39.1564Z",
+  "data": {
+    "additional_data": "some value"
+  },
+  "error": {
+    "data": {},
+    "error": "something went wrong",
+    "stack_trace": [
+      {
+        "file": "/Users/dave/Development/go/ons/log.go/example/main.go",
+        "function": "main.main",
+        "line": 29
+      },
+      {
+        "file": "/usr/local/Cellar/go/1.15.2/libexec/src/runtime/proc.go",
+        "function": "runtime.main",
+        "line": 204
+      },
+      {
+        "file": "/usr/local/Cellar/go/1.15.2/libexec/src/runtime/asm_amd64.s",
+        "function": "runtime.goexit",
+        "line": 1374
+      }
+    ]
+  },
+  "event": "unexpected error",
+  "namespace": "dp-logging-example",
+  "severity": 1
+}
+```
+Full code example:
 ```go
 package main
 
