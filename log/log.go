@@ -202,7 +202,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		//
 		// to avoid this becoming recursive, only pass primitive types in this line (string, int, etc)
 		//
-		// note: Error(err) currently ignores this constraint, but it's expected that the `err`
+		// note: Message(err) currently ignores this constraint, but it's expected that the `err`
 		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
 		//       which don't marshal any non-marshallable types anyway
 		ef.f(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
