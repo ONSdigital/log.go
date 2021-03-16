@@ -81,7 +81,7 @@ func TestError(t *testing.T) {
 		errEventData := Error(err).(*EventError)
 		So(errEventData.StackTrace, ShouldHaveLength, 10)
 		origin := errEventData.StackTrace[0]
-		So(origin.File, ShouldEndWith, "ONSdigital/log.go/log/error_test.go")
+		So(origin.File, ShouldEndWith, "log.go/log/error_test.go")
 		// If this test fails, check the `errEventData := Error(err).(*EventError)` line is still line 81!
 		So(origin.Line, ShouldEqual, 81)
 		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/log.TestError.func5")
