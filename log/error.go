@@ -10,7 +10,7 @@ import (
 // It isn't very useful to export, other than for documenting the
 // data structure it outputs.
 type EventError struct {
-	Error      string            `json:"error,omitempty"`
+	Message    string            `json:"message,omitempty"`
 	StackTrace []EventStackTrace `json:"stack_trace,omitempty"`
 	// This uses interface{} type, but should always be a type of kind struct
 	// (which serialises to map[string]interface{})
@@ -46,7 +46,7 @@ func (l *EventError) attach(le *EventData) {
 // package level variable)
 func Error(err error) option {
 	e := &EventError{
-		Error:      err.Error(),
+		Message:    err.Error(),
 		StackTrace: make([]EventStackTrace, 0),
 	}
 

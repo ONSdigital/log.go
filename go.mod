@@ -1,6 +1,6 @@
 module github.com/ONSdigital/log.go
 
-go 1.12
+go 1.16
 
 require (
 	github.com/ONSdigital/dp-net v1.0.5-0.20200805150805-cac050646ab5

@@ -30,7 +30,7 @@ func TestError(t *testing.T) {
 		Convey("*EventError has the correct fields", func() {
 			myErr := errors.New("test error")
 			ee := Error(myErr).(*EventError)
-			So(ee.Error, ShouldEqual, "test error")
+			So(ee.Message, ShouldEqual, "test error")
 			So(ee.Data, ShouldResemble, myErr)
 			So(ee.StackTrace, ShouldHaveLength, 10)
 		})
@@ -46,17 +46,17 @@ func TestError(t *testing.T) {
 		So(event.Error, ShouldResemble, &err)
 	})
 
-	Convey("Error function sets *EventError.Error to error.Error()", t, func() {
+	Convey("Message function sets *EventError.Message to error.Message()", t, func() {
 		err := errors.New("test error")
 		errEventData := Error(err).(*EventError)
-		So(errEventData.Error, ShouldEqual, "test error")
+		So(errEventData.Message, ShouldEqual, "test error")
 
 		err = customError{"goodbye"}
 		errEventData = Error(err).(*EventError)
-		So(errEventData.Error, ShouldEqual, "hi there!")
+		So(errEventData.Message, ShouldEqual, "hi there!")
 	})
 
-	Convey("Error function sets *EventError.Data to error", t, func() {
+	Convey("Message function sets *EventError.Data to error", t, func() {
 		Convey("A value of kind 'Struct' is embedded directly", func() {
 			err := customError{}
 			errEventData := Error(err).(*EventError)
@@ -75,7 +75,7 @@ func TestError(t *testing.T) {
 		})
 	})
 
-	Convey("Error function generates a stack trace", t, func() {
+	Convey("Message function generates a stack trace", t, func() {
 		err := errors.New("new error")
 		// WARNING if this line moves, update `So(origin.Line, ...)` below
 		errEventData := Error(err).(*EventError)
