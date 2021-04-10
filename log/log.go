@@ -1,6 +1,7 @@
 package log
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -25,6 +26,7 @@ var destination io.Writer = os.Stdout
 var fallbackDestination io.Writer = os.Stderr
 
 var isTestMode bool
+var isMinimalAllocations bool
 
 var eventWithOptionsCheckFunc = &eventFunc{eventWithOptionsCheck}
 var eventWithoutOptionsCheckFunc = &eventFunc{eventWithoutOptionsCheck}
@@ -68,10 +70,166 @@ var styleForMachineFunc = &styleFunc{styleForMachine}
 //     // data.a = 2
 //
 func Event(ctx context.Context, event string, opts ...option) {
-	eventFuncInst.f(ctx, event, opts...)
+	if isMinimalAllocations == false {
+		eventFuncInst.f(ctx, event, opts...)
+		return
+	}
+
+	// Minimum Allocations Event code ...
+	e := EventData2{
+		CreatedAt: time.Now().UTC(),
+		Namespace: Namespace,
+		Event:     event,
+	}
+
+	if ctx != nil {
+		e.TraceID = common.GetRequestId(ctx)
+	}
+
+	// loop around each log option and attach each option
+	// directly into EventData2 struct
+	for _, o := range opts {
+		// Doing typical pattern : `object.attach(thing)`
+		switch v := o.(type) {
+		case severity:
+			e.Severity = &v
+		case *severity: // added to match o.attach(e) code for completness (may never be used)
+			e.Severity = v
+		case Data:
+			e.Data = &v
+		case *Data: // added to match o.attach(e) code for completness (may never be used)
+			e.Data = v
+		case *EventHTTP:
+			e.HTTP = v
+		case *EventError:
+			e.Error = v
+		case *eventAuth:
+			e.Auth = v
+		default:
+			fmt.Printf("option: %v, %v, %T", o, v, v)
+			panic("unknown option")
+		}
+	}
+
+	//fmt.Fprintf(destination, "%+v\n", e)
+
+	//var err error = nil
+
+	//err := json.NewEncoder(destination).Encode(e)
+
+	// The following is an 'inline' unrolling of:
+	//    err := json.NewEncoder(destination).Encode(e)
+	// to eliminate allocations leaking to the HEAP by using a
+	// sync.Pool bytes.Buffer
+
+	var somethingWritten bool
+
+	buf := eventBufPool.Get().(*bytes.Buffer) // with casting on the end
+	buf.Reset()                               // Must reset before each block of usage
+
+	buf.WriteByte('{')
+	if !e.CreatedAt.IsZero() {
+		somethingWritten = true
+		unrollCreatedAt(buf, e.CreatedAt)
+	}
+
+	if e.Namespace != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		somethingWritten = true
+		unrollNamespace(buf, e.Namespace)
+	}
+
+	if e.Event != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		somethingWritten = true
+		unrollEvent(buf, e.Event)
+	}
+
+	if e.TraceID != "" {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		somethingWritten = true
+		unrollTraceID(buf, e.TraceID)
+	}
+
+	if e.Severity != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		somethingWritten = true
+		unrollSeverity(buf, int(*e.Severity))
+	}
+
+	if e.HTTP != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		somethingWritten = true
+		unrollHTTPToBuf(buf, e.HTTP, true, true, true, true, true, true)
+	}
+
+	if e.Auth != nil {
+		unrollAuthToBuf(somethingWritten, buf, e.Auth)
+		somethingWritten = true
+	}
+
+	if e.Data != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		somethingWritten = true
+		unrollDataToBuf(buf, e.Data)
+	}
+
+	if e.Error != nil {
+		if somethingWritten {
+			buf.WriteByte(',')
+		}
+		unrollErrorToBuf(buf, e.Error)
+	}
+
+	buf.WriteByte('}')
+	buf.WriteByte(10)
+
+	l := int64(buf.Len()) // cast to same type as returned by WriteTo()
+
+	// try and write to stdout
+	if n, err := buf.WriteTo(destination); n != l || err != nil {
+		// if that fails, try and write to stderr
+		if n, err := buf.WriteTo(fallbackDestination); n != l || err != nil {
+			// if that fails, panic!
+			//
+			// also defer an os.Exit since the panic might be captured in a recover
+			// block in the caller, but we always want to exit in this scenario
+			//
+			// Note: deferring an os.Exit makes this particular block untestable
+			// using conventional `go test`. But it's a narrow enough edge case that
+			// it probably isn't worth trying, and only occurs in extreme circumstances
+			// (os.Stdout and os.Stderr both being closed) where unpredictable
+			// behaviour is expected. It's not clear what a panic or os.Exit would do
+			// in this scenario, or if our process is even still alive to get this far.
+			defer os.Exit(1)
+			panic("error writing log data: " + err.Error())
+		}
+	}
+
+	eventBufPool.Put(buf)
 }
 
+// this is called before main()
 func initEvent() *eventFunc {
+	if flag.Lookup("minimumAllocs") != nil {
+		isMinimalAllocations = true
+	}
+	if b, _ := strconv.ParseBool(os.Getenv("MINIMUM_ALLOC")); b {
+		isMinimalAllocations = true
+	}
+
 	// If we're in test mode, replace the Event function with one
 	// that has additional checks to find repeated event option types
 	//
@@ -90,6 +248,7 @@ func initEvent() *eventFunc {
 	return eventWithoutOptionsCheckFunc
 }
 
+// this is called before main()
 var styler = initStyler()
 
 func initStyler() *styleFunc {
@@ -145,6 +304,26 @@ type EventData struct {
 	Error *EventError `json:"error,omitempty"`
 }
 
+// EventData2 - this version of 'EventData' has "SpanID" removed to reduce memory allocation in the HOT-PATH
+type EventData2 struct {
+	// Required fields
+	CreatedAt time.Time `json:"created_at"`
+	Namespace string    `json:"namespace"`
+	Event     string    `json:"event"`
+
+	// Optional fields
+	TraceID  string    `json:"trace_id,omitempty"`
+	Severity *severity `json:"severity,omitempty"`
+
+	// Optional nested data
+	HTTP *EventHTTP `json:"http,omitempty"`
+	Auth *eventAuth `json:"auth,omitempty"`
+	Data *Data      `json:"data,omitempty"`
+
+	// Error data
+	Error *EventError `json:"error,omitempty"`
+}
+
 // eventWithOptionsCheck is the event function used when running tests, and
 // will panic if the same log option is passed in multiple times
 //
@@ -153,6 +332,10 @@ func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
 	var optMap = make(map[string]struct{})
 	for _, o := range opts {
 		t := reflect.TypeOf(o)
+		if t.Kind() == reflect.Ptr { // this needed to test calls from Event()
+			t = t.Elem()
+		}
+
 		p := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
 		if _, ok := optMap[p]; ok {
 			panic("can't pass in the same parameter type multiple times: " + p)
@@ -239,6 +422,7 @@ func print(b []byte) {
 		return
 	}
 
+	//	b = append(b, 55) // used to break test, just to check that test is working
 	// try and write to stdout
 	if n, err := fmt.Fprintln(destination, string(b)); n != len(b)+1 || err != nil {
 		// if that fails, try and write to stderr

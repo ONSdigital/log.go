@@ -1,0 +1,844 @@
+12th July 2020
+
+1.
+
+Re-introduced BenchmarkLog as BenchmarkLog1() and improved it to have the trace_id
+
+Output of one benchmark loop iteration is:
+
+With all fields filled: (1027 chars)
+
+{"created_at":"2020-07-12T14:17:08.326636414Z","namespace":"/tmp/go-build355120080/b001/log.test","event":"Benchmark test","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"auth":{"identity":"tester-1","identity_type":"user"},"data":{"data_1":"d1","data_2":"d2","data_3":"d3","data_4":"d4"},"error":{"error":"test error","stack_trace":[{"file":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log_test.go","line":414,"function":"github.com/ONSdigital/log.go/log.BenchmarkLog1"},{"file":"/usr/local/go/src/testing/benchmark.go","line":191,"function":"testing.(*B).runN"},{"file":"/usr/local/go/src/testing/benchmark.go","line":321,"function":"testing.(*B).launch"},{"file":"/usr/local/go/src/runtime/asm_amd64.s","line":1373,"function":"runtime.goexit"}],"data":{}}}
+
+
+Without Error: (546 chars)
+
+{"created_at":"2020-07-12T14:20:42.051331146Z","namespace":"/tmp/go-build468832792/b001/log.test","event":"Benchmark test","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"auth":{"identity":"tester-1","identity_type":"user"},"data":{"data_1":"d1","data_2":"d2","data_3":"d3","data_4":"d4"}}
+
+-=-
+
+Run the benchmark in a terminal with:
+
+    go test -run=log_test.go -bench=Log1 -memprofile=mem0.out
+
+produces an output of:
+
+    12724	    103233 ns/op	    4547 B/op	      38 allocs/op
+
+to look into the result file:
+
+    go tool pprof --alloc_space log.test mem0.out
+
+enter command:
+
+    top30
+
+produces:
+
+Showing nodes accounting for 90.56MB, 100% of 90.56MB total
+      flat  flat%   sum%        cum   cum%
+   23.03MB 25.43% 25.43%    31.53MB 34.81%  encoding/json.Marshal
+   23.03MB 25.43% 50.85%    23.03MB 25.43%  github.com/ONSdigital/log.go/log.print
+   15.50MB 17.12% 67.97%    15.50MB 17.12%  github.com/ONSdigital/log.go/log.Error
+   10.50MB 11.60% 79.57%    90.56MB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog1
+       4MB  4.42% 83.99%        4MB  4.42%  github.com/ONSdigital/log.go/log.createEvent
+       3MB  3.31% 87.30%        3MB  3.31%  github.com/ONSdigital/log.go/log.HTTP
+       3MB  3.31% 90.61%        3MB  3.31%  reflect.mapiterinit
+    2.50MB  2.76% 93.37%    34.03MB 37.57%  github.com/ONSdigital/log.go/log.styleForMachine
+       2MB  2.21% 95.58%     8.50MB  9.39%  encoding/json.mapEncoder.encode
+    1.50MB  1.66% 97.24%     5.50MB  6.07%  reflect.Value.MapKeys
+       1MB  1.10% 98.34%        1MB  1.10%  internal/reflectlite.Swapper
+       1MB  1.10% 99.45%        1MB  1.10%  reflect.copyVal
+    0.50MB  0.55%   100%     0.50MB  0.55%  github.com/ONSdigital/log.go/log.Auth (inline)
+         0     0%   100%     8.50MB  9.39%  encoding/json.(*encodeState).marshal
+         0     0%   100%     8.50MB  9.39%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%     8.50MB  9.39%  encoding/json.ptrEncoder.encode
+         0     0%   100%     8.50MB  9.39%  encoding/json.structEncoder.encode
+         0     0%   100%    61.05MB 67.42%  github.com/ONSdigital/log.go/log.Event (inline)
+         0     0%   100%    61.05MB 67.42%  github.com/ONSdigital/log.go/log.eventWithoutOptionsCheck
+         0     0%   100%        1MB  1.10%  sort.Slice
+         0     0%   100%    90.56MB   100%  testing.(*B).launch
+         0     0%   100%    90.56MB   100%  testing.(*B).runN
+(pprof)
+
+-=-
+
+To get out of pprof, type:
+
+    exit
+
+-=-=-
+
+13th July 2020
+
+Improving memory allocation doing direct io.Write() to save the memory allocated in converting from a []byte to string.
+
+In log.go print() has a little re-write and it has been tested with the tests and a new Benchmark : BenchmarkLog4 in log_test.go
+
+BenchmarkLog4 creates 3 Events that are very similar to the ones that are on the HOT PATH for every request that
+dp-frontend-router receives.
+The length of the request URL has been chossen for its maximum length as found in the cfg for dp-frontend-router.
+
+For ALL 3 events - BenchmarkLog4:
+
+  with original code shows (approx'): 5771 bytes allocated over 45 allocations
+
+  with new code shows (approx'): (4021 to 4055) bytes allocated over 39 allocations
+
+Thats a saving of just over 29% in memory allocated which is a nice reduction in pressure on the garbage collector
+over 1000's of requests per second.
+
+-=-=-
+
+Had to tweak the TestLog() to cope with the way carriage return is added to the result of Marshal.
+
+-=-=-
+
+In all of the ONS repo's the log EventData field : SpanID is not used, so removing this and further adjusting the TestLog()
+reduced the number of bytes allocated to : (3926 to 3957) over 39 allocations. Almost another 100 bytes ...
+probably due to the size of the allocation falling below some number that is a power of 2
+
+This increases the saving to approx': 31%
+
+The output from one iteration of BenchmarkLog4() for this change is:
+
+{"created_at":"2020-07-13T16:57:02.625278996Z","namespace":"/tmp/go-build936354334/b001/log.test","event":"http request received","trace_id":"CkeeltJJFsQYykrr","http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:57:01.346817962Z"}}
+{"created_at":"2020-07-13T16:57:02.625296777Z","namespace":"/tmp/go-build936354334/b001/log.test","event":"proxying request","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+{"created_at":"2020-07-13T16:57:02.625320366Z","namespace":"/tmp/go-build936354334/b001/log.test","event":"http request completed","http":{"status_code":200,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:57:01.346817962Z","ended_at":"2020-07-13T16:57:01.346818943Z","duration":981,"response_content_length":4}}
+
+-=-=-
+
+Temporarily changing : styleForMachine()  to:
+
+func styleForMachine(ctx context.Context, e EventData, ef eventFunc) []byte {
+	err := json.NewEncoder(destination).Encode(e)
+
+	var b []byte = []byte{0} // /this line, just to get code to compile
+
+	return handleStyleError(ctx, e, ef, b, err)
+}
+
+and commenting out the code in the print() function ...
+
+to directly encode to the output, reduces the bytes allocated to:
+
+   2251
+
+which saves another ~ : 1675 bytes   which as a total percentage saving from the starting point is
+
+2251 / 5771 = 0.39%     which is a saving of 61%  ... thats looking very good.
+
+The memory saving is achieved by virtue of the way "json.Marshal()" works internally ... it returns its result by copying
+the marshal'd result from its internal sync.Pool into a newly allocated return array.
+Using the json.NewEncoder() does not do this allocation for the returned array (because there isn't one).
+
+This temporary change does break a lot of the tests. They would need re-writting, together with other parts of the code
+to utilise this optimisation.
+
+The output from one iteration of BenchmarkLog4() for this change is:
+
+{"created_at":"2020-07-13T16:54:23.169678416Z","namespace":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log.test","event":"http request received","trace_id":"CkeeltJJFsQYykrr","http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:54:22.042497738Z"}}
+{"created_at":"2020-07-13T16:54:23.169695818Z","namespace":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log.test","event":"proxying request","trace_id":"CkeeltJJFsQYykrr","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+{"created_at":"2020-07-13T16:54:23.169717016Z","namespace":"/home/rhys/gobook/src/github.com/ONSdigital/log.go/log/log.test","event":"http request completed","http":{"status_code":200,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-13T16:54:22.042497738Z","ended_at":"2020-07-13T16:54:22.042498136Z","duration":398,"response_content_length":4}}
+
+
+In the above, the namespace has changed (not sure why) ... hmmm
+
+-=-=-
+
+To further optimise the code with a view to achieving ZERO allocations, a MAJOR rewrite of the log.go function Event()
+would be needed.
+
+To achieve this, 'escape analysis' is needed to see what allocations escape to the HEAP.
+
+Within the log folder, use the following to get a list of the lines that need considering:
+
+    go build -gcflags='-m -m' log.go severity.go data.go error.go auth.go http.go
+
+which produces over 400 lines of 'challenging' output ...
+
+Game on ...
+
+-=-=-
+
+14th July 2020
+
+Stage 1:
+
+The previous temporary changes have been cleaned out.
+
+To implement first part of optimisation a new feature flag has been added to make testing and benchmarking easy.
+For production code this could be changed to an environment variable.
+
+The flag is called "minimumAllocs".
+
+When this flag is used, the function Event() in log.go uses inlined code.
+
+BenchmarkLog4() runs the new code, with command: go test -run=log_test.go -bench=Log4 -memprofile=mem0.out
+
+BenchmarkLog5() runs the original code, with command: go test -run=log_test.go -bench=Log5 -memprofile=mem0.out
+
+The outputs look nominally the same apart from the time stamp.
+
+The new code allocates 1889 bytes over 33 allocations in 1.572 seconds.
+
+The original code allocates 5578 bytes over 45 allocations in 1.659 seconds
+
+1889 / 5578 = 0.34% which is a saving of 66%   ... and the new code generates (when adjusted for time) almost 50% more events.
+
+BenchmarkLog1() is to test all events with original code.
+
+BenchmarkLog6() is to test all events with new code.
+
+-=-=-
+
+To run the tests:
+
+go test -count=1 ./...
+
+where the "-count=1" is to avoid cached tests
+
+-=-=-
+
+15th July 2020
+
+Stage 2:
+
+Escape Analysis shows that the EventHTTP struct escapes to the HEAP by virtue to the fact that it gets filled with pointers
+to information that is elsewhere on the HEAP.
+And similarly for the eventAuth and EventError struct's.
+
+The log.go package is easy to use, which is a strength, but with a hidden weakness ... how much memory allocations it puts
+to the HEAP.
+
+Overcoming these would only be warranted if there is a need for a high performance dp-frontend-router.
+
+One way then of overcoming these 'SPECIFICALLY' for dp-frontend-router is to to have a new log package where one splits
+out the 3 Event() functions into a sequence of calls to 'helper' functions that write into a sync.Pool of byte.Buffer
+and this is then written to the destination channel in one io.Write action.
+
+This sequence of new functions would replace the specific 3 calls the the Event() function in dp-frontend-router.
+
+This would end up looking something similar to zerolog, but tailored to maintain an output format that matches the
+existing log.go
+
+-=-=-
+
+Doing:
+        go test -run=log_test.go -bench=Log4 -memprofile=mem0.out
+
+and then:
+        go tool pprof --alloc_space log.test mem0.out
+
+and then entering:
+	top30
+
+gives:
+
+Showing nodes accounting for 17410.12kB, 100% of 17410.12kB total
+      flat  flat%   sum%        cum   cum%
+ 5120.57kB 29.41% 29.41%  5120.57kB 29.41%  github.com/ONSdigital/log.go/log.HTTP
+ 3072.84kB 17.65% 47.06% 17410.12kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+ 3072.33kB 17.65% 64.71%  9216.71kB 52.94%  github.com/ONSdigital/log.go/log.Event
+ 2048.09kB 11.76% 76.47%  2048.09kB 11.76%  time.Time.MarshalJSON
+ 1536.14kB  8.82% 85.30%  1536.14kB  8.82%  reflect.mapiterinit
+ 1024.08kB  5.88% 91.18%  4096.29kB 23.53%  encoding/json.mapEncoder.encode
+ 1024.05kB  5.88% 97.06%  2560.19kB 14.71%  reflect.Value.MapKeys
+  512.02kB  2.94%   100%   512.02kB  2.94%  internal/reflectlite.Swapper
+         0     0%   100%  6144.38kB 35.29%  encoding/json.(*Encoder).Encode
+         0     0%   100%  6144.38kB 35.29%  encoding/json.(*encodeState).marshal
+         0     0%   100%  6144.38kB 35.29%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%  1024.05kB  5.88%  encoding/json.condAddrEncoder.encode
+         0     0%   100%  2048.09kB 11.76%  encoding/json.marshalerEncoder
+         0     0%   100%  5120.34kB 29.41%  encoding/json.ptrEncoder.encode
+         0     0%   100%  6144.38kB 35.29%  encoding/json.structEncoder.encode
+         0     0%   100%   512.02kB  2.94%  sort.Slice
+         0     0%   100% 17410.12kB   100%  testing.(*B).launch
+         0     0%   100% 17410.12kB   100%  testing.(*B).runN
+
+-=-=-
+
+The above shows that the encoding seems to be leaking a lot ... hmmm
+
+With the line:
+
+    err := json.NewEncoder(destination).Encode(e)
+
+in the code, the bytes allocated is ~=  1890 for the 3 events.
+
+if this line is replaced with:
+
+    var err error = nil
+
+the bytes allocated comes down to ~= 848 for the 3 events.
+
+So, the encoding i putting onto the HEAP ~= 1890 - 848 ~= 1042 bytes
+
+-=-=-
+
+Replacing the Encode(e) with a simple print:
+
+    fmt.Fprintf(destination, "%+v\n", e)
+
+the bytes allocated is ~= 1544
+
+and the output becomes:
+
+{CreatedAt:2020-07-15 15:02:31.445058464 +0000 UTC Namespace:BenchmarkLog Event:http request received TraceID:CkeeltJJFsQYykrr Severity:<nil> HTTP:0xc000369900 Auth:<nil> Data:<nil> Error:<nil>}
+{CreatedAt:2020-07-15 15:02:31.445066127 +0000 UTC Namespace:BenchmarkLog Event:proxying request TraceID:CkeeltJJFsQYykrr Severity:0xc000370658 HTTP:0xc000369980 Auth:<nil> Data:0xc00019b748 Error:<nil>}
+{CreatedAt:2020-07-15 15:02:31.445072792 +0000 UTC Namespace:BenchmarkLog Event:http request completed TraceID: Severity:<nil> HTTP:0xc000369a00 Auth:<nil> Data:<nil> Error:<nil>}
+
+As comparred to the Encode'd output of:
+
+{"created_at":"2020-07-15T15:07:46.505143999Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"WtxsVMtiiEXEBxDQ","http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-15T15:07:45.306035434Z"}}
+{"created_at":"2020-07-15T15:07:46.505155952Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"WtxsVMtiiEXEBxDQ","severity":3,"http":{"status_code":0,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+{"created_at":"2020-07-15T15:07:46.505170204Z","namespace":"BenchmarkLog","event":"http request completed","http":{"status_code":200,"method":"GET","scheme":"ttp","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-15T15:07:45.306035434Z","ended_at":"2020-07-15T15:07:45.30603599Z","duration":556,"response_content_length":4}}
+
+-=-=-
+
+As we know what is in all of the struct's, we could pick the items out in a specific order to ALWAYS get the same order as
+comparred to what the json package might do (according to some comments in the existing log.go package).
+
+We would thus inline the 'Encode' function with the advantage of not having to do any 'reflection' to determine the data types.
+
+-=-=-
+
+Inline expansion started (more to do).
+
+Memory allocations on HEAP now down to 1412 over 27 allocations.
+
+Still using BenchmarkLog4():
+
+1412 / 5578 = 0.25% which is a saving of 75%
+
+The pprof top30 is:
+
+Showing nodes accounting for 15361.66kB, 100% of 15361.66kB total
+      flat  flat%   sum%        cum   cum%
+ 4608.91kB 30.00% 30.00% 15361.66kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+ 3584.27kB 23.33% 53.34%  3584.27kB 23.33%  github.com/ONSdigital/log.go/log.HTTP
+ 2560.20kB 16.67% 70.00%  5632.41kB 36.67%  encoding/json.mapEncoder.encode
+ 1536.14kB 10.00% 80.00%  1536.14kB 10.00%  reflect.mapiterinit
+ 1536.07kB 10.00% 90.00%  1536.07kB 10.00%  time.Time.MarshalJSON
+ 1024.05kB  6.67% 96.67%  1024.05kB  6.67%  internal/reflectlite.Swapper
+  512.02kB  3.33%   100%  2048.16kB 13.33%  reflect.Value.MapKeys
+         0     0%   100%  7168.48kB 46.66%  encoding/json.(*Encoder).Encode
+         0     0%   100%  7168.48kB 46.66%  encoding/json.(*encodeState).marshal
+         0     0%   100%  7168.48kB 46.66%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%  1536.07kB 10.00%  encoding/json.marshalerEncoder
+         0     0%   100%  7168.48kB 46.66%  encoding/json.ptrEncoder.encode
+         0     0%   100%  1536.07kB 10.00%  encoding/json.structEncoder.encode
+         0     0%   100%  7168.48kB 46.66%  github.com/ONSdigital/log.go/log.Event
+         0     0%   100%  5632.41kB 36.67%  github.com/ONSdigital/log.go/log.expandDataToBuf (inline)
+         0     0%   100%  1536.07kB 10.00%  github.com/ONSdigital/log.go/log.expandHTTPToBuf (inline)
+         0     0%   100%  1024.05kB  6.67%  sort.Slice
+         0     0%   100% 15361.66kB   100%  testing.(*B).launch
+         0     0%   100% 15361.66kB   100%  testing.(*B).runN
+
+-=-=-
+
+16th July 2020
+
+Stage 3:
+
+Inline expansion, of function: expandDataToBuf()
+
+Memory allocations on HEAP now down to 994 over 17 allocations.
+
+Still using BenchmarkLog4():
+
+994 / 5578 = 0.18% which is a saving of 82%
+
+The pprof top30 is:
+
+Showing nodes accounting for 7MB, 100% of 7MB total
+      flat  flat%   sum%        cum   cum%
+    4.50MB 64.28% 64.28%     4.50MB 64.28%  github.com/ONSdigital/log.go/log.HTTP
+    2.50MB 35.72%   100%        7MB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+         0     0%   100%        7MB   100%  testing.(*B).launch
+         0     0%   100%        7MB   100%  testing.(*B).runN
+
+That's a big change.
+
+(more to do)
+
+-=-=-
+
+Stage 4:
+
+Inline expansion, of function: expandHTTPToBuf()
+
+Memory allocations on HEAP now down to 881 over 19 allocations.
+
+Still using BenchmarkLog4():
+
+881 / 5578 = 0.16% which is a saving of 84%
+
+The pprof top30 is:
+
+Showing nodes accounting for 2560.62kB, 100% of 2560.62kB total
+      flat  flat%   sum%        cum   cum%
+ 2048.56kB 80.00% 80.00%  2560.62kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+  512.06kB 20.00%   100%   512.06kB 20.00%  github.com/ONSdigital/log.go/log.HTTP
+         0     0%   100%  2560.62kB   100%  testing.(*B).launch
+         0     0%   100%  2560.62kB   100%  testing.(*B).runN
+
+(more to do)
+
+-=-=-
+
+17th July 2020
+
+Stage 5:
+
+Add and use optimized conversion functions.
+
+Memory allocations on HEAP now down to 850 over 14 allocations.
+
+Still using BenchmarkLog4():
+
+850 / 5578 = 0.15% which is a saving of 85%
+
+The pprof top30 is:
+
+Showing nodes accounting for 9729.41kB, 100% of 9729.41kB total
+      flat  flat%   sum%        cum   cum%
+ 5632.96kB 57.90% 57.90%  9729.41kB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog4
+ 3584.44kB 36.84% 94.74%  3584.44kB 36.84%  github.com/ONSdigital/log.go/log.HTTP
+  512.01kB  5.26%   100%   512.01kB  5.26%  sync.(*Map).LoadOrStore
+         0     0%   100%   512.01kB  5.26%  encoding/json.(*Encoder).Encode
+         0     0%   100%   512.01kB  5.26%  encoding/json.(*encodeState).marshal
+         0     0%   100%   512.01kB  5.26%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%   512.01kB  5.26%  encoding/json.typeEncoder
+         0     0%   100%   512.01kB  5.26%  encoding/json.valueEncoder
+         0     0%   100%   512.01kB  5.26%  github.com/ONSdigital/log.go/log.Event
+         0     0%   100%   512.01kB  5.26%  github.com/ONSdigital/log.go/log.expandDataToBuf
+         0     0%   100%  9217.40kB 94.74%  testing.(*B).launch
+         0     0%   100%   512.01kB  5.26%  testing.(*B).run1.func1
+         0     0%   100%  9729.41kB   100%  testing.(*B).runN
+
+-=-=-
+
+*** However, after noticing i was missing the "query" field that gets added in the depths of the 
+    reverse proxying and adding it ...
+
+Re-running BenchmarkLog5() ... which uses the original Event() code path ...
+
+    the Total bytes allocated for the 3 events is 6866 over 45 allocations.
+
+So, the savings figures change to:
+
+850 / 6866 = 0.124% which is a saving of 87.6%    (thats ~ 6016 bytes saved per request).
+
+-=-=-
+
+Stage 6:
+
+To achieve any further optimisations, things now get messy ...
+
+The log.go makes passing the info to be logged very easy, neat and clean which is good and optimising any further
+risks making easy mistakes in initialising the data to be logged and makes the code less easy to maintain.
+
+So it is probably best to stop at Stage 5 and use the code there.
+
+That said, the following is done just to show the things that can be done to further reduce allocations on the HEAP:
+
+BenchmarkLog7() added which inlines the EventHTTP struct onto the stack of BenchmarkLog7()
+
+BenchmarkLog7() was derived from BenchmarkLog4() and produces the same output, demonstrating that the structures
+are being initialised and adjusted correctly for each of the three Event()'s that are logged.
+
+So if there is ever a need to apply what is done for the savings that these create, hopefully copying the specifics
+of what is done into log's middleware.go and the reverse proxy code in dp-frontend-router ...
+the structures will stay on the stack and not LEAK to the HEAP.
+
+You would have to run your own Benchmarking of the changes to verify that there is a benefit.
+
+The results for Benchmark7() are:
+
+Memory allocations on HEAP now down to 577 over 10 allocations.
+
+577 / 6866 = 0.084% which is a saving of 91.6%
+
+The pprof top30 is:
+
+Showing nodes accounting for 7MB, 100% of 7MB total
+      flat  flat%   sum%        cum   cum%
+       7MB   100%   100%        7MB   100%  github.com/ONSdigital/log.go/log.BenchmarkLog7
+         0     0%   100%        7MB   100%  testing.(*B).launch
+         0     0%   100%        7MB   100%  testing.(*B).runN
+
+-=-=-
+
+In pprov, entering: list BenchmarkLog7 produces:
+
+    5.50MB     5.50MB (flat, cum)   100% of Total
+         .          .    696:		var duration *time.Duration
+         .          .    697:
+         .          .    698:		// inline the the setting up of the "EventHTTP" to save doing the HTTP(...)
+         .          .    699:		// thing as this escapes to the heap, whereas doing the following stays within
+         .          .    700:		// the stack of this calling function.
+  512.06kB   512.06kB    701:		e := EventHTTP{
+         .          .    702:			StatusCode: &statusCode,
+         .          .    703:			Method:     req.Method,
+         .          .    704:
+         .          .    705:			Scheme: req.URL.Scheme,
+         .          .    706:			Host:   req.URL.Hostname(),
+         .          .    707:			Port:   port,
+         .          .    708:			Path:   req.URL.Path,
+         .          .    709:			Query:  req.URL.RawQuery,
+         .          .    710:
+         .          .    711:			StartedAt:             &start,
+         .          .    712:			EndedAt:               nil,
+         .          .    713:			Duration:              duration,
+         .          .    714:			ResponseContentLength: 0,
+         .          .    715:		}
+         .          .    716:
+         .          .    717:		//Event(ctx, "http request received", HTTP(req, 0, 0, &start, nil))
+         .          .    718:		Event(ctx, "http request received", &e)
+         .          .    719:
+         .          .    720:		port = 0
+         .          .    721:		if p := req2.URL.Port(); len(p) > 0 {
+         .          .    722:			port, _ = strconv.Atoi(p)
+         .          .    723:		}
+         .          .    724:
+         .          .    725:		e.Method = req2.Method
+         .          .    726:		e.Scheme = req2.URL.Scheme
+         .          .    727:		e.Host = req2.URL.Hostname()
+         .          .    728:		e.Port = port
+         .          .    729:		e.Path = req2.URL.Path
+         .          .    730:		e.Query = req2.URL.RawQuery
+         .          .    731:		e.StartedAt = nil
+         .          .    732:
+         .          .    733:		// 2nd event is 'similar in length' to one in createReverseProxy()
+         .          .    734:		//		Event(ctx, "proxying request", INFO, HTTP(req2, 0, 0, nil, nil),
+  512.02kB   512.02kB    735:		Event(ctx, "proxying request", INFO, &e,
+    4.50MB     4.50MB    736:			Data{"destination": babbageURL,
+         .          .    737:				"proxy_name": "babbage"})
+         .          .    738:
+         .          .    739:		port = 0
+         .          .    740:		if p := req2.URL.Port(); len(p) > 0 {
+         .          .    741:			port, _ = strconv.Atoi(p)
+
+-=-=-
+
+And the above shows that on line 736 the initialising of Data{...} is leaking to the stack ... if it could be eliminated
+or done in a way such that one only extracts just what is needed from 'babbageURL' then more savings could be found.
+
+Just commenting out the Data{...} and babbageURL items gets the saving to:
+
+216 bytes allocated over 7 allocations.
+
+pushing the percentage saved up to : 96.8%
+
+but the EventHTTP struct is still leaking to the stack.
+
+So, to have any chance of getting from Stage 5's 87.6% savings to 100% saving in allocations for the 3 events on the HOT-PATH
+for dp-frontend-router ... some new custom Event() functions would be needed that are implemented using sync.Pool
+These functions would then take all the individual parameters needed and not any struct's that leak to the heap.
+And hopefully none of the parameters passed leak to the heap.
+
+-=-=-
+
+18th July 2020
+
+Stage 7:
+
+Analysis of effect of Stage 5 code which has 87.6% savings on memory allocations for the 3 events on the HOT-PATH
+in dp-frontend-router.
+(Actual code used has a bug fix and new code to read environment variable 'MINIMUM_ALLOC').
+
+Test dp-front-endrouter with new log.go with race detector with:
+
+	export MINIMUM_ALLOC=1		[ to use new log.go code ]
+
+	go build -race main.go
+
+end run it with :
+	./main
+
+and stress testing it with autocannon, by running:
+
+	./autocannon --pipelining=1000 --connections=1000 --duration=30 --uri=http://localhost:20000/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi
+
+and having babbage_nano running (a mock).
+
+No race problems found.
+
+-=-=-
+
+Without race detecotor in effect and running built versions of dp-frontend-router, autocannon and babbage_nano
+TEN runs of each of the following configurations were run and the total number of completed requests recorded in
+file: less allocations impact on dp-frontend-router.ods
+
+The output from dp-frontend-router was processed to generate a number of PDF plots.
+
+								requests per	new gain over old
+config 1:				result plot		second		% more requests		Average mem allocated
+old log.go, garbage collection @10	e-old-gc10.pdf		12.5K					~ 20 Mega Bytes
+
+config 2:
+old log.go, garbage collection @100	e-old-gc100.pdf		15.2K					~ 28 Mega Bytes
+
+config 3:
+New log.go, garbage collection @10	e-new-gc10.pdf		14.1K		12.4%			~ 20 Mega Bytes
+
+config 4:
+New log.go, garbage collection @100	e-new-gc100.pdf		16.3K		7.1%			~ 27 Mega Bytes
+
+
+Observations:
+=============
+1. Running the Garbage collector at 10 has a big impact on the average memory allocated.
+
+2. The new log code with less allocations runs faster allowing more requests per second and when the Garbage Collector
+   is at 10, the new log code has only slightly less requests per second (on this test setup) than the original
+   unmodified code, but brings the average memory allocated down by about 8 Mega Bytes and this could be of great help.
+
+3. The default "ulimit of 1024" on my Ubuntu 18.04LTS is clamping the maximum number of go routines that are active to
+   what looks like 1017 (that are servicing connections).
+    (I'm using a modified version of serve'go to count the number of go routines active - no limit clamping is being done).
+
+Action:
+=======
+1. Has anyone logged into the container that is running dp-frontend-router and checked what 'ulimit -n' is ???
+   (if it is more than 1024, then that will allow more server connections to be established and more memory allocated ...).
+
+-=-=-
+
+19th July 2020
+
+Stage 8:
+
+Add Test function : TestLogNew1()
+
+run it with:
+
+	go test -v -run TestLogNew1
+
+This showed some differences when visually inspecting the output of this test.
+
+These are new fixed.
+
+The library routine that prints the time does not output trailing zero's, so new log code adjusted to do the same.
+
+There is more work todo inside this function to programmatically compare the old events against the new ones.
+
+The changes now show that the original three events allocates ~6995 bytes and the new is ~850
+
+so the actual savings are now:
+
+850 / 6995 = 0.122% which is a saving of 87.8%
+
+-=-=-
+
+20th July 2020
+
+Fix bug in log.go and fix some mistakes in test code.
+
+Temporary debug print from : TestLogNew1()   (where just the time stamps are different)
+
+BUT, in this example OLD 2 and NEW 2 have the data for 'proxy_name' and 'destination' swapped.
+
+(which won't help in writting comparison code).
+
+-=-=-
+Testing: 'New Log 1'
+Captured Event OLD 1:
+{"created_at":"2020-07-20T10:47:45.642782503Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z"}}
+Captured Event OLD 2:
+{"created_at":"2020-07-20T10:47:45.643210833Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+Captured Event OLD 3:
+{"created_at":"2020-07-20T10:47:45.643319905Z","namespace":"BenchmarkLog","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z","ended_at":"2020-07-20T10:47:45.642777823Z","duration":295,"response_content_length":4}}
+Captured Event NEW 1:
+{"created_at":"2020-07-20T10:47:45.643355175Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z"}}
+Captured Event NEW 2:
+{"created_at":"2020-07-20T10:47:45.643387638Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"proxy_name":"babbage","destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""}}}
+Captured Event NEW 3:
+{"created_at":"2020-07-20T10:47:45.643420794Z","namespace":"BenchmarkLog","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-20T10:47:45.642777528Z","ended_at":"2020-07-20T10:47:45.642777823Z","duration":295,"response_content_length":4}}
+
+-=-=-
+
+This shortens the original amount of allocations to 6610 and adjusts the savings to be:
+
+850 / 6610 = 0.129% which is a saving of 87.1%
+
+-=-=-
+
+21st July 2020
+
+upgraded to go1.14.6 at 2PM
+
+-=-=-
+
+22nd July 2020
+
+Add tests, refactor, have hassle with Travis (looks like its using g1.12 & i'm using go1.14.6 and there is some differences when
+testing - see commit comments for fix).
+
+-=-=-
+
+23rd July 2020
+
+Stage 9:
+
+dp-frontend-router: shorten Log => Save Money
+
+New code added and applied to log/middleware.go and the following needs adding to dp-frontend-router's main.go:
+
+Just before main():
+
+var isMinimalAllocations bool = checkMinimumAlloc()
+
+func checkMinimumAlloc() bool {
+	if b, _ := strconv.ParseBool(os.Getenv("MINIMUM_ALLOC")); b {
+		return true
+	}
+	return false
+}
+
+and in function createReverseProxy() change code to:
+
+			if isMinimalAllocations == false {
+				log.Event(req.Context(), "proxying request", log.INFO, log.HTTP(req, 0, 0, nil, nil), log.Data{
+					"destination": proxyURL,
+					"proxy_name":  proxyName,
+				})
+			} else {
+				log.SaveMoneyEvent2(req.Context(), "proxying request", log.INFO, log.HTTP(req, 0, 0, nil, nil), log.Data{
+					"destination": proxyURL,
+					"proxy_name":  "babbage"})
+			}
+
+-=-
+
+Build dp-frontend-router with the new log library and the above changes and test as per "stage 2"
+
+You will find PDF's showing results of various runs of dp-frontend-router.
+
+f-old-gc10.pdf	- old event code with Garbage Collector set to 10
+
+f-new-gc10.pdf	- new event code with Garbage Collector set to 10
+
+f-save-gc10.pdf	- using SaveMoneyEvent's event code with Garbage Collector set to 10
+
+f-save-gc40.pdf	- using SaveMoneyEvent's event code with Garbage Collector set to 40
+
+Comparing these to the PDF's whose name starts with the letter 'e' ... they look quite different.
+
+I suspect the garbage collector has been changed in go1.14.6 and is now working a lot harder because the latest code
+also looks like it is servicing about half the number of requests per second (still a lot).
+
+This reduction in the amount of requests may be down to something else all together that has changed in the latest version
+of go and it's libraries.
+
+-=-
+
+Benchmarking the new SaveMoneyEvents with:
+
+	go test -run=unroll_event_benchmark_test.go -bench=LogSave -memprofile=mem0.out
+
+shows the overall bytes allocated has dropped further to 762, which makes the savings:
+
+762 / 6610 = 0.115% which is a saving of 88.5%
+
+-=-=-
+
+Running a test function that is set up to show the amount of characters saved from writting to the log file with:
+
+	go test -v -count=1 -race -cover -run TestLogSaveMoneyEventSavings ./...
+
+Gives the following output:
+
+-=-=-
+
+=== RUN   TestLogSaveMoneyEventSavings
+Testing: 'New Log 3 Events in dp-frontend-router HAPPY HOT-PATH'
+Event 1 : old Length: 445, new Length: 397
+OLD 1:
+{"created_at":"2020-07-23T16:48:20.803704833Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-23T16:48:20.803677687Z"}}
+
+NEW 1:
+{"created_at":"2020-07-23T16:48:20.806229973Z","namespace":"BenchmarkLog","event":"http request received","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":0,"method":"GET","path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-23T16:48:20.803677687Z"}}
+
+Event 2 : old Length: 782, new Length: 518
+OLD 2:
+{"created_at":"2020-07-23T16:48:20.805436509Z","namespace":"BenchmarkLog","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+
+NEW 2:
+{"created_at":"2020-07-23T16:48:20.806400956Z","event":"proxying request","trace_id":"LZEMktPSfWETgvVt","severity":3,"http":{"status_code":0,"query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi"},"data":{"destination":{"Scheme":"http","Opaque":"","User":null,"Host":"localhost:8080","Path":"","RawPath":"","ForceQuery":false,"RawQuery":"","Fragment":""},"proxy_name":"babbage"}}
+
+Event 2 : old Length: 727, new Length: 208
+OLD 3:
+{"created_at":"2020-07-23T16:48:20.805979238Z","namespace":"BenchmarkLog","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"method":"GET","scheme":"http","host":"localhost","port":20000,"path":"/embed/visualisations/peoplepopulationandcommunity/populationandmigration/internationalmigration/qmis/shortterminternationalmigrationestimatesforlocalauthoritiesqmi","query":"%3Auri=embed%2Fvisualisations%2Fpeoplepopulationandcommunity%2Fpopulationandmigration%2Finternationalmigration%2Fqmis%2Fshortterminternationalmigrationestimatesforlocalauthoritiesqmi","started_at":"2020-07-23T16:48:20.803677687Z","ended_at":"2020-07-23T16:48:20.8036788Z","duration":1113,"response_content_length":4}}
+
+NEW 3:
+{"created_at":"2020-07-23T16:48:20.806607904Z","event":"http request completed","trace_id":"LZEMktPSfWETgvVt","http":{"status_code":200,"ended_at":"2020-07-23T16:48:20.8036788Z","response_content_length":4}}
+
+Initial totals old: 1954, new 1123
+In these tests, unfortunately the following appears in the old events:
+"scheme":"http","host":"localhost","port":20000
+  which may not be in the logs from dp-frontend-router.So, removing the length of the 'extra' info from the old events ...
+FINAL totals old: 1813, new 1123
+
+  ****  Thats a saving of 38.1%  ****
+
+--- PASS: TestLogSaveMoneyEventSavings (0.00s)
+
+
+-=-=-
+
+4th Aug 2020
+
+Stage 10: Custom Events to achieve 100% reduction in HEAP Allocations
+
+Add CustomSaveMoney functions to eliminate ALL HEAP Allocations from the 3 log functions that are on the HAPPY HOT-PATH
+of dp-frontend-router.
+
+Add BenchmarkLogCustomSave() to demonstrate no Allocations, run with:
+
+	go test -run=unroll_event_benchmark_test.go -bench=LogCustomSave -memprofile=mem0.out
+
+This has a FINAL output report of:
+
+	14152	     77910 ns/op	       0 B/op	       0 allocs/op
+
+And the original code can be benchmarked with:
+
+	go test -run=unroll_event_benchmark_test.go -bench=Log5 -memprofile=mem0.out
+
+And this reports:
+
+	7453	    168863 ns/op	    6611 B/op	      45 allocs/op
+
+
+Which shows that the final code runs somewhat faster than the original code - enabling more requests per second to be handled.
+
+
+Add TestLogCustomSaveMoneyEvents() to test SaveMoneyEvent functions agains new CustomSaveMoneyEvent functions, run with:
+
+	go test -v -count=1 -cover -run TestLogCustomSaveMoneyEvents ./...
+
+-=-=-
+
+Running this new code in dp-frontend-router does not show any further noticable improvement in reducing average
+Heap allocations during stress load tests.
+
+In dp-frontend-router's main.go, replace the previous call to new function: SaveMoneyEvent2()
+
+with:
+
+	log.CustomSaveMoneyEvent2(req.Context(), "proxying request", log.INFO,
+					req, 0, 0,
+					"destination", proxyURL,
+					"proxy_name", "proxyName")
+
+-=-=-
+
+
+The FINAL code with logging ~38% less runs over twice as fast.
+
+
+Should this ever be used in production, it will need full testing and possibly some adjustments to for any
+specific requirements.
+
