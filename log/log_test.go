@@ -101,18 +101,18 @@ func TestLog(t *testing.T) {
 	Convey("eventWithOptionsCheck panics if the same option is passed multiple times", t, func() {
 		So(func() {
 			eventWithOptionsCheck(nil, "event", Data{}, Data{})
-		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.Data")
+		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		So(func() {
 			eventWithOptionsCheck(nil, "event", FATAL, INFO)
-		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.severity")
+		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.severity")
 
 		Convey("The first duplicate argument causes the panic", func() {
 			So(func() {
 				eventWithOptionsCheck(nil, "event", FATAL, Data{}, INFO, Data{})
-			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.severity")
+			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.severity")
 			So(func() {
 				eventWithOptionsCheck(nil, "event", FATAL, Data{}, Data{}, INFO)
-			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.Data")
+			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		})
 	})
 

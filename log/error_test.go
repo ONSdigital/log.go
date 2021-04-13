@@ -84,6 +84,6 @@ func TestError(t *testing.T) {
 		So(origin.File, ShouldEndWith, "log.go/log/error_test.go")
 		// If this test fails, check the `errEventData := Error(err).(*EventError)` line is still line 81!
 		So(origin.Line, ShouldEqual, 81)
-		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/log.TestError.func5")
+		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/v2/log.TestError.func5")
 	})
 }
