@@ -124,7 +124,7 @@ func TestMiddleware(t *testing.T) {
 			So(efm.hasBeenCalled, ShouldBeTrue)
 			So(efm.capEvent, ShouldEqual, "nil request in middleware handler")
 			So(efm.capOpts, ShouldHaveLength, 1)
-			So(efm.capOpts[0], ShouldHaveSameTypeAs, FATAL)
+			So(efm.capOpts[0], ShouldHaveSameTypeAs, Data{})
 		})
 
 		Convey("Inner handler is called by middleware", func() {

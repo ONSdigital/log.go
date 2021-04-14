@@ -67,8 +67,24 @@ var styleForMachineFunc = &styleFunc{styleForMachine}
 //     log.Event(nil, "event", log.Data{"a": 1}, log.Data{"a": 2})
 //     // data.a = 2
 //
-func Event(ctx context.Context, event string, opts ...option) {
-	eventFuncInst.f(ctx, event, opts...)
+func Event(ctx context.Context, event string, severity severity, opts ...option) {
+	eventFuncInst.f(ctx, event, severity, opts...)
+}
+
+func Info(ctx context.Context, event string, opts ...option) {
+	eventFuncInst.f(ctx, event, INFO, opts...)
+}
+
+func Warn(ctx context.Context, event string, opts ...option) {
+	eventFuncInst.f(ctx, event, WARN, opts...)
+}
+
+func ErrorDetails(ctx context.Context, event string, opts ...option) {
+	eventFuncInst.f(ctx, event, ERROR, opts...)
+}
+
+func Fatal(ctx context.Context, event string, opts ...option) {
+	eventFuncInst.f(ctx, event, FATAL, opts...)
 }
 
 func initEvent() *eventFunc {
@@ -104,7 +120,7 @@ func initStyler() *styleFunc {
 
 // eventFunc is a function which handles log events
 type eventFunc struct {
-	f func(ctx context.Context, event string, opts ...option)
+	f func(ctx context.Context, event string, severity severity, opts ...option)
 }
 type styleFunc = struct {
 	f func(ctx context.Context, e EventData, ef eventFunc) []byte
@@ -149,7 +165,7 @@ type EventData struct {
 // will panic if the same log option is passed in multiple times
 //
 // It is only used during tests because of the runtime performance overhead
-func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
+func eventWithOptionsCheck(ctx context.Context, event string, severity severity, opts ...option) {
 	var optMap = make(map[string]struct{})
 	for _, o := range opts {
 		t := reflect.TypeOf(o)
@@ -160,13 +176,13 @@ func eventWithOptionsCheck(ctx context.Context, event string, opts ...option) {
 		optMap[p] = struct{}{}
 	}
 
-	eventWithoutOptionsCheckFunc.f(ctx, event, opts...)
+	eventWithoutOptionsCheckFunc.f(ctx, event, severity, opts...)
 }
 
 // eventWithoutOptionsCheck is the event function used when we're not running tests
 //
 // It doesn't do any log options checks to minimise the runtime performance overhead
-func eventWithoutOptionsCheck(ctx context.Context, event string, opts ...option) {
+func eventWithoutOptionsCheck(ctx context.Context, event string, severity severity, opts ...option) {
 	print(styler.f(ctx, *createEvent(ctx, event, opts...), eventFunc{eventWithoutOptionsCheck}))
 }
 
@@ -205,7 +221,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		// note: Message(err) currently ignores this constraint, but it's expected that the `err`
 		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
 		//       which don't marshal any non-marshallable types anyway
-		ef.f(ctx, "error marshalling event data", Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
+		ef.f(ctx, "error marshalling event data", ERROR, Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
 		if isTestMode {

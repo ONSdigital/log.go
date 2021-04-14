@@ -24,13 +24,13 @@ import (
 func Middleware(f http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req == nil {
-			Event(nil, "nil request in middleware handler", FATAL)
+			Event(nil, "nil request in middleware handler", INFO, Data{})
 			return
 		}
 
 		rc := &responseCapture{w, nil, 0}
 		start := time.Now().UTC()
-		Event(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
+		Event(req.Context(), "http request received", INFO, HTTP(req, 0, 0, &start, nil))
 
 		defer func() {
 			end := time.Now().UTC()
@@ -40,7 +40,7 @@ func Middleware(f http.Handler) http.Handler {
 				statusCode = *rc.statusCode
 			}
 
-			Event(req.Context(), "http request completed", HTTP(req, statusCode, rc.bytesWritten, &start, &end))
+			Event(req.Context(), "http request completed", INFO, HTTP(req, statusCode, rc.bytesWritten, &start, &end))
 		}()
 
 		f.ServeHTTP(rc, req)

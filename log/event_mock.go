@@ -13,7 +13,7 @@ type eventFuncMock struct {
 	onEvent func(e eventFuncMock)
 }
 
-func (e *eventFuncMock) Event(ctx context.Context, event string, opts ...option) {
+func (e *eventFuncMock) Event(ctx context.Context, event string, severity severity, opts ...option) {
 	e.capCtx = ctx
 	e.capEvent = event
 	e.capOpts = opts

@@ -78,10 +78,46 @@ func TestLog(t *testing.T) {
 
 		Convey("Event calls eventFuncInst.f", func() {
 			var wasCalled bool
-			eventFuncInst = &eventFunc{func(ctx context.Context, event string, opts ...option) {
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
 			}}
-			Event(nil, "")
+			Event(nil, "", INFO)
+			So(wasCalled, ShouldBeTrue)
+		})
+
+		Convey("Info calls eventFuncInst.f", func() {
+			var wasCalled bool
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+			}}
+			Info(nil, "", INFO)
+			So(wasCalled, ShouldBeTrue)
+		})
+
+		Convey("Warn calls eventFuncInst.f", func() {
+			var wasCalled bool
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+			}}
+			Warn(nil, "", WARN)
+			So(wasCalled, ShouldBeTrue)
+		})
+
+		Convey("ErrorDetails calls eventFuncInst.f", func() {
+			var wasCalled bool
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+			}}
+			ErrorDetails(nil, "", ERROR)
+			So(wasCalled, ShouldBeTrue)
+		})
+
+		Convey("Fatal calls eventFuncInst.f", func() {
+			var wasCalled bool
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+			}}
+			Fatal(nil, "", FATAL)
 			So(wasCalled, ShouldBeTrue)
 		})
 
@@ -100,18 +136,12 @@ func TestLog(t *testing.T) {
 
 	Convey("eventWithOptionsCheck panics if the same option is passed multiple times", t, func() {
 		So(func() {
-			eventWithOptionsCheck(nil, "event", Data{}, Data{})
+			eventWithOptionsCheck(nil, "event", INFO, Data{}, Data{})
 		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
-		So(func() {
-			eventWithOptionsCheck(nil, "event", FATAL, INFO)
-		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.severity")
 
 		Convey("The first duplicate argument causes the panic", func() {
 			So(func() {
-				eventWithOptionsCheck(nil, "event", FATAL, Data{}, INFO, Data{})
-			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.severity")
-			So(func() {
-				eventWithOptionsCheck(nil, "event", FATAL, Data{}, Data{}, INFO)
+				eventWithOptionsCheck(nil, "event", FATAL, Data{}, Data{}, &EventHTTP{})
 			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		})
 	})
@@ -127,7 +157,7 @@ func TestLog(t *testing.T) {
 		var o []option
 		var called bool
 
-		eventWithoutOptionsCheckFunc.f = func(ctx context.Context, event string, opts ...option) {
+		eventWithoutOptionsCheckFunc.f = func(ctx context.Context, event string, severity severity, opts ...option) {
 			called = true
 			c = ctx
 			e = event
@@ -137,7 +167,7 @@ func TestLog(t *testing.T) {
 		ctx := context.Background()
 		So(called, ShouldBeFalse)
 
-		eventWithOptionsCheck(ctx, "test event", FATAL)
+		eventWithOptionsCheck(ctx, "test event", INFO, FATAL)
 
 		So(called, ShouldBeTrue)
 		So(c, ShouldEqual, ctx)
@@ -275,7 +305,7 @@ func TestLog(t *testing.T) {
 			var calledCtx context.Context
 			var calledEvent string
 			var calledOpts []option
-			f := func(ctx context.Context, event string, opts ...option) {
+			f := func(ctx context.Context, event string, severity severity, opts ...option) {
 				called = true
 				calledCtx = ctx
 				calledEvent = event
@@ -312,7 +342,7 @@ func TestLog(t *testing.T) {
 
 		Convey("panic if running in test mode", func() {
 			So(func() {
-				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, opts ...option) {}}, []byte("test"), errors.New("test"))
+				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {}}, []byte("test"), errors.New("test"))
 			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
 		})
 
@@ -351,7 +381,7 @@ func TestLog(t *testing.T) {
 			return len(b), nil
 		}}
 
-		eventWithoutOptionsCheck(nil, "test")
+		eventWithoutOptionsCheck(nil, "test", INFO)
 
 		So(string(bytesWritten), ShouldResemble, "styled output\n")
 	})

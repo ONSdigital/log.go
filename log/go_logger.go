@@ -14,6 +14,6 @@ func init() {
 type captureLogger struct{}
 
 func (c captureLogger) Write(b []byte) (n int, err error) {
-	Event(nil, "third party logs", Data{"raw": strings.TrimSpace(string(b))})
+	Event(nil, "third party logs", INFO, Data{"raw": strings.TrimSpace(string(b))})
 	return len(b), nil
 }
