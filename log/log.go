@@ -170,12 +170,14 @@ func eventWithOptionsCheck(ctx context.Context, event string, severity severity,
 	for _, o := range opts {
 		t := reflect.TypeOf(o)
 		p := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
+		if p == "github.com/ONSdigital/log.go/v2/log.severity" {
+			panic("can't pass severity as a parameter")
+		}
 		if _, ok := optMap[p]; ok {
 			panic("can't pass in the same parameter type multiple times: " + p)
 		}
 		optMap[p] = struct{}{}
 	}
-
 	eventWithoutOptionsCheckFunc.f(ctx, event, severity, opts...)
 }
 

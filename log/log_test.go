@@ -141,8 +141,8 @@ func TestLog(t *testing.T) {
 
 		Convey("The first duplicate argument causes the panic", func() {
 			So(func() {
-				eventWithOptionsCheck(nil, "event", FATAL, Data{}, Data{}, &EventHTTP{})
-			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
+				eventWithOptionsCheck(nil, "event", FATAL, INFO)
+			}, ShouldPanicWith, "can't pass severity as a parameter")
 		})
 	})
 
@@ -167,14 +167,13 @@ func TestLog(t *testing.T) {
 		ctx := context.Background()
 		So(called, ShouldBeFalse)
 
-		eventWithOptionsCheck(ctx, "test event", INFO, FATAL)
-
+		eventWithOptionsCheck(ctx, "test event", INFO, Data{"value": 1})
 		So(called, ShouldBeTrue)
 		So(c, ShouldEqual, ctx)
 		So(e, ShouldEqual, "test event")
 		So(o, ShouldHaveLength, 1)
-		So(o[0], ShouldHaveSameTypeAs, INFO)
-		So(o[0], ShouldEqual, FATAL)
+		So(o[0], ShouldHaveSameTypeAs, Data{})
+		So(o[0], ShouldResemble, Data{"value": 1})
 	})
 
 	Convey("createEvent creates a new event", t, func() {
