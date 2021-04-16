@@ -144,7 +144,7 @@ func TestLog(t *testing.T) {
 
 		Convey("The first duplicate argument causes the panic", func() {
 			So(func() {
-				eventWithOptionsCheck(nil, "event", FATAL, Data{}, Data{}, &EventHTTP{})
+				eventWithOptionsCheck(nil, "event", FATAL, Data{}, &EventHTTP{}, Data{})
 			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		})
 	})
