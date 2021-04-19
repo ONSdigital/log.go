@@ -108,7 +108,7 @@ func TestLog(t *testing.T) {
 			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
 			}}
-			ErrorDetails(nil, "", ERROR)
+			ErrorDetails(nil, "", errors.New("error"), ERROR)
 			So(wasCalled, ShouldBeTrue)
 		})
 
@@ -117,7 +117,7 @@ func TestLog(t *testing.T) {
 			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
 			}}
-			Fatal(nil, "", FATAL)
+			Fatal(nil, "", errors.New("fatal error"), FATAL)
 			So(wasCalled, ShouldBeTrue)
 		})
 

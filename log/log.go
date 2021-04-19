@@ -79,11 +79,11 @@ func Warn(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, WARN, opts...)
 }
 
-func ErrorDetails(ctx context.Context, event string, opts ...option) {
+func ErrorDetails(ctx context.Context, event string, err error, opts ...option) {
 	eventFuncInst.f(ctx, event, ERROR, opts...)
 }
 
-func Fatal(ctx context.Context, event string, opts ...option) {
+func Fatal(ctx context.Context, event string, err error, opts ...option) {
 	eventFuncInst.f(ctx, event, FATAL, opts...)
 }
 
