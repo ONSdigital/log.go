@@ -182,12 +182,12 @@ func TestLog(t *testing.T) {
 	Convey("createEvent creates a new event", t, func() {
 
 		Convey("createEvent should set the namespace", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.Namespace, ShouldEqual, Namespace)
 		})
 
 		Convey("createEvent should set the timestamp", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.CreatedAt.Unix(), ShouldBeGreaterThan, 0)
 
 			now := time.Now().UTC()
@@ -202,29 +202,29 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("createEvent should set the event", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.Event, ShouldEqual, "event")
 
-			evt = createEvent(nil, "test")
+			evt = createEvent(nil, "test", INFO)
 			So(evt.Event, ShouldEqual, "test")
 		})
 
 		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
 			ctx := request.WithRequestId(context.Background(), "trace ID")
-			evt := createEvent(ctx, "event")
+			evt := createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "trace ID")
 
 			ctx = request.WithRequestId(context.Background(), "another ID")
-			evt = createEvent(ctx, "event")
+			evt = createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "another ID")
 		})
 
 		Convey("createEvent attaches options to the parent event", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.Auth, ShouldBeNil)
 
 			e := Auth(USER, "identity")
-			evt = createEvent(nil, "event", e)
+			evt = createEvent(nil, "event", INFO, e)
 			So(evt.Auth, ShouldEqual, e)
 		})
 

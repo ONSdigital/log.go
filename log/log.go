@@ -71,19 +71,35 @@ func Event(ctx context.Context, event string, severity severity, opts ...option)
 	eventFuncInst.f(ctx, event, severity, opts...)
 }
 
+//log.Info wraps the Event function
+//When using log.Info, INFO should be passed as the severity argument
 func Info(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, INFO, opts...)
 }
 
+//log.Warn wraps the Event function
+//When using log.Warn, WARN should be passed as the severity argument
 func Warn(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, WARN, opts...)
 }
 
+//log.ErrorDetails wraps the Event function
+//When using log.ErrorDetails, ERROR should be passed as the severity argument
 func ErrorDetails(ctx context.Context, event string, err error, opts ...option) {
+	errs := &EventError{
+		Message: err.Error(),
+	}
+	opts = append(opts, errs)
 	eventFuncInst.f(ctx, event, ERROR, opts...)
 }
 
+//log.Fatal wraps the Event function
+//When using log.Fatal, FATAL should be passed as the severity argument
 func Fatal(ctx context.Context, event string, err error, opts ...option) {
+	errs := &EventError{
+		Message: err.Error(),
+	}
+	opts = append(opts, errs)
 	eventFuncInst.f(ctx, event, FATAL, opts...)
 }
 
@@ -185,14 +201,15 @@ func eventWithOptionsCheck(ctx context.Context, event string, severity severity,
 //
 // It doesn't do any log options checks to minimise the runtime performance overhead
 func eventWithoutOptionsCheck(ctx context.Context, event string, severity severity, opts ...option) {
-	print(styler.f(ctx, *createEvent(ctx, event, opts...), eventFunc{eventWithoutOptionsCheck}))
+	print(styler.f(ctx, *createEvent(ctx, event, severity, opts...), eventFunc{eventWithoutOptionsCheck}))
 }
 
 // createEvent creates a new event struct and attaches the options to it
-func createEvent(ctx context.Context, event string, opts ...option) *EventData {
+func createEvent(ctx context.Context, event string, severity severity, opts ...option) *EventData {
 	e := EventData{
 		CreatedAt: time.Now().UTC(),
 		Namespace: Namespace,
+		Severity:  &severity,
 		Event:     event,
 	}
 
