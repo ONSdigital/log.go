@@ -71,20 +71,17 @@ func Event(ctx context.Context, event string, severity severity, opts ...option)
 	eventFuncInst.f(ctx, event, severity, opts...)
 }
 
-//log.Info wraps the Event function
-//When using log.Info, INFO should be passed as the severity argument
+//log.Info wraps the Event function with the severity level set to INFO
 func Info(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, INFO, opts...)
 }
 
-//log.Warn wraps the Event function
-//When using log.Warn, WARN should be passed as the severity argument
+//log.Warn wraps the Event function with the severity level set to WARN
 func Warn(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, WARN, opts...)
 }
 
-//log.ErrorDetails wraps the Event function
-//When using log.ErrorDetails, ERROR should be passed as the severity argument
+//log.ErrorDetails wraps the Event function with the severity level set to ERROR
 func ErrorDetails(ctx context.Context, event string, err error, opts ...option) {
 	errs := &EventError{
 		Message: err.Error(),
@@ -93,8 +90,7 @@ func ErrorDetails(ctx context.Context, event string, err error, opts ...option) 
 	eventFuncInst.f(ctx, event, ERROR, opts...)
 }
 
-//log.Fatal wraps the Event function
-//When using log.Fatal, FATAL should be passed as the severity argument
+//log.Fatal wraps the Event function with the severity level set to FATAL
 func Fatal(ctx context.Context, event string, err error, opts ...option) {
 	errs := &EventError{
 		Message: err.Error(),
