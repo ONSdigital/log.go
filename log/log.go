@@ -71,30 +71,26 @@ func Event(ctx context.Context, event string, severity severity, opts ...option)
 	eventFuncInst.f(ctx, event, severity, opts...)
 }
 
-//log.Info wraps the Event function with the severity level set to INFO
+// Info wraps the Event function with the severity level set to INFO
 func Info(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, INFO, opts...)
 }
 
-//log.Warn wraps the Event function with the severity level set to WARN
+// Warn wraps the Event function with the severity level set to WARN
 func Warn(ctx context.Context, event string, opts ...option) {
 	eventFuncInst.f(ctx, event, WARN, opts...)
 }
 
-//log.ErrorDetails wraps the Event function with the severity level set to ERROR
-func ErrorDetails(ctx context.Context, event string, err error, opts ...option) {
-	errs := &EventError{
-		Message: err.Error(),
-	}
+// Error wraps the Event function with the severity level set to ERROR
+func Error(ctx context.Context, event string, err error, opts ...option) {
+	errs := FormatError(err)
 	opts = append(opts, errs)
 	eventFuncInst.f(ctx, event, ERROR, opts...)
 }
 
-//log.Fatal wraps the Event function with the severity level set to FATAL
+// Fatal wraps the Event function with the severity level set to FATAL
 func Fatal(ctx context.Context, event string, err error, opts ...option) {
-	errs := &EventError{
-		Message: err.Error(),
-	}
+	errs := FormatError(err)
 	opts = append(opts, errs)
 	eventFuncInst.f(ctx, event, FATAL, opts...)
 }
@@ -236,7 +232,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		// note: Message(err) currently ignores this constraint, but it's expected that the `err`
 		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
 		//       which don't marshal any non-marshallable types anyway
-		ef.f(ctx, "error marshalling event data", ERROR, Error(err), Data{"event_data": fmt.Sprintf("%+v", e)})
+		ef.f(ctx, "error marshalling event data", ERROR, FormatError(err), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
 		if isTestMode {

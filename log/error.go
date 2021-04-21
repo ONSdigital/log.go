@@ -32,7 +32,7 @@ func (l *EventError) attach(le *EventData) {
 	le.Error = l
 }
 
-// Error returns an option you can pass to Event to attach
+// FormatError returns an option you can pass to Event to attach
 // error information to a log event
 //
 // It uses error.Error() to stringify the error value
@@ -41,10 +41,10 @@ func (l *EventError) attach(le *EventData) {
 // data. For a struct{} type, it is included directly. For all
 // other types, it is wrapped in a Data{} struct
 //
-// It also includes a full strack trace to where Error() is called,
+// It also includes a full strack trace to where FormatError() is called,
 // so you shouldn't normally store a log.Error for reuse (e.g. as a
 // package level variable)
-func Error(err error) option {
+func FormatError(err error) option {
 	e := &EventError{
 		Message:    err.Error(),
 		StackTrace: make([]EventStackTrace, 0),

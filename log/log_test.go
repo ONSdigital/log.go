@@ -87,38 +87,51 @@ func TestLog(t *testing.T) {
 
 		Convey("Info calls eventFuncInst.f", func() {
 			var wasCalled bool
+			var severityLevel severity
 			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
+				severityLevel = severity
 			}}
 			Info(nil, "", INFO)
 			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, INFO)
 		})
 
 		Convey("Warn calls eventFuncInst.f", func() {
 			var wasCalled bool
+			var severityLevel severity
 			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
+				severityLevel = severity
 			}}
 			Warn(nil, "", WARN)
 			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, WARN)
 		})
 
-		Convey("ErrorDetails calls eventFuncInst.f", func() {
+		Convey("Error calls eventFuncInst.f", func() {
 			var wasCalled bool
+			var severityLevel severity
 			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
+				severityLevel = severity
 			}}
-			ErrorDetails(nil, "", errors.New("error"), ERROR)
+			Error(nil, "", errors.New("error"))
 			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, ERROR)
+
 		})
 
 		Convey("Fatal calls eventFuncInst.f", func() {
 			var wasCalled bool
+			var severityLevel severity
 			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
+				severityLevel = severity
 			}}
 			Fatal(nil, "", errors.New("fatal error"), FATAL)
 			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, FATAL)
 		})
 
 		Convey("styler function is set correctly", func() {
