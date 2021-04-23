@@ -11,6 +11,6 @@ Opinionated, and designed to match our [logging standards](https://github.com/ON
 
 ### Licence
 
-Copyright ©‎ 2019-2020, Crown Copyright (Office for National Statistics) (https://www.ons.gov.uk)
+Copyright ©‎ 2019-2021, Crown Copyright (Office for National Statistics) (https://www.ons.gov.uk)
 
 Released under MIT license, see [LICENSE](LICENSE.md) for details.
