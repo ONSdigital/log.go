@@ -61,10 +61,10 @@ func FormatErrors(err []error) option {
 		switch k {
 		case reflect.Struct:
 			// We've got a struct type, so make it the top level value
-			errs.Data = err
+			errs.Data = err[i]
 		default:
 			// We have something else, so nest it inside a Data value
-			errs.Data = Data{"value": err}
+			errs.Data = Data{"value": err[i]}
 		}
 
 		pc := make([]uintptr, 10)

@@ -26,6 +26,8 @@ func (w writer) Write(b []byte) (n int, err error) {
 }
 
 func TestLog(t *testing.T) {
+	t.Parallel()
+
 	Convey("Package defaults are right", t, func() {
 		Convey("Namespace defaults to os.Args[0]", func() {
 			So(Namespace, ShouldEqual, os.Args[0])
@@ -135,15 +137,16 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("styler function is set correctly", func() {
+			oldValue := os.Getenv("HUMAN_LOG")
 			Convey("styler is set to styleForMachineFunc by default", func() {
+				os.Setenv("HUMAN_LOG", "")
 				So(initStyler(), ShouldEqual, styleForMachineFunc)
 			})
 			Convey("styler is set to styleForHumanFunc if HUMAN_LOG environment variable is set", func() {
-				oldValue := os.Getenv("HUMAN_LOG")
 				os.Setenv("HUMAN_LOG", "1")
 				So(initStyler(), ShouldEqual, styleForHumanFunc)
-				os.Setenv("HUMAN_LOG", oldValue)
 			})
+			os.Setenv("HUMAN_LOG", oldValue)
 		})
 	})
 
@@ -333,7 +336,8 @@ func TestLog(t *testing.T) {
 
 			So(called, ShouldBeFalse)
 			isTestMode = false
-			b2 := handleStyleError(ctx, EventData{}, eventFunc{f}, b, errors.New("test"))
+			err := errors.New("test")
+			b2 := handleStyleError(ctx, EventData{}, eventFunc{f}, b, err)
 			isTestMode = true
 			So(called, ShouldBeTrue)
 			So(b2, ShouldBeEmpty)
@@ -346,13 +350,13 @@ func TestLog(t *testing.T) {
 			ee := calledOpts[0].(*EventErrors)
 			So((*ee)[0].Message, ShouldEqual, "test")
 			// ee.Data is an *errors.errorString, because it was made with errors.New()
-			So((*ee)[0].Data, ShouldHaveSameTypeAs, errors.New("test"))
-			So((*ee)[0].Data.(error).Error(), ShouldEqual, "test")
+			So((*ee)[0].Data, ShouldHaveSameTypeAs, Data{})
+			So((*ee)[0].Data.(Data)["value"], ShouldEqual, err)
 
 			So(calledOpts[1], ShouldHaveSameTypeAs, Data{})
 			d := calledOpts[1].(Data)
 			So(d, ShouldContainKey, "event_data")
-			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
+			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
 
 		Convey("panic if running in test mode", func() {
