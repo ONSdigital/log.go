@@ -342,12 +342,12 @@ func TestLog(t *testing.T) {
 			So(calledEvent, ShouldEqual, "error marshalling event data")
 			So(calledOpts, ShouldHaveLength, 2)
 
-			So(calledOpts[0], ShouldHaveSameTypeAs, &EventError{})
-			ee := calledOpts[0].(*EventError)
-			So(ee.Message, ShouldEqual, "test")
+			So(calledOpts[0], ShouldHaveSameTypeAs, &EventErrors{})
+			ee := calledOpts[0].(*EventErrors)
+			So((*ee)[0].Message, ShouldEqual, "test")
 			// ee.Data is an *errors.errorString, because it was made with errors.New()
-			So(ee.Data, ShouldHaveSameTypeAs, errors.New("test"))
-			So(ee.Data.(error).Error(), ShouldEqual, "test")
+			So((*ee)[0].Data, ShouldHaveSameTypeAs, errors.New("test"))
+			So((*ee)[0].Data.(error).Error(), ShouldEqual, "test")
 
 			So(calledOpts[1], ShouldHaveSameTypeAs, Data{})
 			d := calledOpts[1].(Data)
@@ -358,7 +358,7 @@ func TestLog(t *testing.T) {
 		Convey("panic if running in test mode", func() {
 			So(func() {
 				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {}}, []byte("test"), errors.New("test"))
-			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
+			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
 
 	})

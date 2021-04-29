@@ -83,14 +83,14 @@ func Warn(ctx context.Context, event string, opts ...option) {
 
 // Error wraps the Event function with the severity level set to ERROR
 func Error(ctx context.Context, event string, err error, opts ...option) {
-	errs := FormatError(err)
+	errs := FormatErrors([]error{err})
 	opts = append(opts, errs)
 	eventFuncInst.f(ctx, event, ERROR, opts...)
 }
 
 // Fatal wraps the Event function with the severity level set to FATAL
 func Fatal(ctx context.Context, event string, err error, opts ...option) {
-	errs := FormatError(err)
+	errs := FormatErrors([]error{err})
 	opts = append(opts, errs)
 	eventFuncInst.f(ctx, event, FATAL, opts...)
 }
@@ -166,7 +166,7 @@ type EventData struct {
 	Data *Data      `json:"data,omitempty"`
 
 	// Error data
-	Error *EventError `json:"error,omitempty"`
+	Errors *EventErrors `json:"error,omitempty"`
 }
 
 // eventWithOptionsCheck is the event function used when running tests, and
@@ -232,7 +232,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		// note: Message(err) currently ignores this constraint, but it's expected that the `err`
 		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
 		//       which don't marshal any non-marshallable types anyway
-		ef.f(ctx, "error marshalling event data", ERROR, FormatError(err), Data{"event_data": fmt.Sprintf("%+v", e)})
+		ef.f(ctx, "error marshalling event data", ERROR, FormatErrors([]error{err}), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
 		if isTestMode {

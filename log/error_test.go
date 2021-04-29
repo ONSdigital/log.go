@@ -23,16 +23,17 @@ func (c customIntError) Error() string {
 
 func TestError(t *testing.T) {
 	Convey("Error function returns a *EventError", t, func() {
-		err := FormatError(errors.New("test"))
-		So(err, ShouldHaveSameTypeAs, &EventError{})
+		err := FormatErrors([]error{errors.New("test")})
+		So(err, ShouldHaveSameTypeAs, &EventErrors{})
 		So(err, ShouldImplement, (*option)(nil))
 
 		Convey("*EventError has the correct fields", func() {
-			myErr := errors.New("test error")
-			ee := FormatError(myErr).(*EventError)
-			So(ee.Message, ShouldEqual, "test error")
-			So(ee.Data, ShouldResemble, myErr)
-			So(ee.StackTrace, ShouldHaveLength, 10)
+			myErr := []error{errors.New("test")}
+			myData := Data{"value": []error{errors.New("test")}}
+			ee := FormatErrors(myErr).(*EventErrors)
+			So((*ee)[0].Message, ShouldEqual, "test")
+			So((*ee)[0].Data, ShouldResemble, myData)
+			So((*ee)[0].StackTrace, ShouldHaveLength, 10)
 		})
 	})
 
@@ -40,50 +41,51 @@ func TestError(t *testing.T) {
 		event := &EventData{}
 		So(event.Data, ShouldBeNil)
 
-		err := EventError{}
+		err := EventErrors{}
 		err.attach(event)
 
-		So(event.Error, ShouldResemble, &err)
+		So(event.Errors, ShouldResemble, &err)
 	})
 
 	Convey("Message function sets *EventError.Message to error.Message()", t, func() {
 		err := errors.New("test error")
-		errEventData := FormatError(err).(*EventError)
-		So(errEventData.Message, ShouldEqual, "test error")
+		errEventData := FormatErrors([]error{err}).(*EventErrors)
+		So((*errEventData)[0].Message, ShouldEqual, "test error")
 
 		err = customError{"goodbye"}
-		errEventData = FormatError(err).(*EventError)
-		So(errEventData.Message, ShouldEqual, "hi there!")
+		errEventData = FormatErrors([]error{err}).(*EventErrors)
+		So((*errEventData)[0].Message, ShouldEqual, "hi there!")
 	})
 
 	Convey("Message function sets *EventError.Data to error", t, func() {
 		Convey("A value of kind 'Struct' is embedded directly", func() {
 			err := customError{}
-			errEventData := FormatError(err).(*EventError)
-			So(errEventData.Data, ShouldHaveSameTypeAs, err)
+			// data := Data{}
+			errEventData := FormatErrors([]error{err}).(*EventErrors)
+			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err)
 		})
 		Convey("A value of kind 'Ptr->Struct' is embedded directly", func() {
-			err := &customError{}
-			errEventData := FormatError(err).(*EventError)
-			So(errEventData.Data, ShouldEqual, err)
+			err := customError{}
+			errEventData := FormatErrors([]error{err}).(*EventErrors)
+			So((*errEventData)[0].Data, ShouldEqual, err)
 		})
 		Convey("A value of other kinds (e.g. 'Int') is wrapped in Data{value:<err>}", func() {
 			err := customIntError(0)
-			errEventData := FormatError(err).(*EventError)
-			So(errEventData.Data, ShouldHaveSameTypeAs, Data{})
-			So(errEventData.Data.(Data)["value"], ShouldHaveSameTypeAs, customIntError(0))
+			errEventData := FormatErrors([]error{err}).(*EventErrors)
+			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, Data{})
+			So((*errEventData)[0].Data.(Data)["value"], ShouldHaveSameTypeAs, customIntError(0))
 		})
 	})
 
 	Convey("Message function generates a stack trace", t, func() {
 		err := errors.New("new error")
 		// WARNING if this line moves, update `So(origin.Line, ...)` below
-		errEventData := FormatError(err).(*EventError)
-		So(errEventData.StackTrace, ShouldHaveLength, 10)
-		origin := errEventData.StackTrace[0]
+		errEventData := FormatErrors([]error{err}).(*EventErrors)
+		So((*errEventData)[0].StackTrace, ShouldHaveLength, 10)
+		origin := (*errEventData)[0].StackTrace[0]
 		So(origin.File, ShouldEndWith, "log.go/log/error_test.go")
 		// If this test fails, check the `errEventData := Error(err).(*EventError)` line is still line 81!
-		So(origin.Line, ShouldEqual, 81)
+		So(origin.Line, ShouldEqual, 83)
 		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/v2/log.TestError.func5")
 	})
 }

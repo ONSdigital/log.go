@@ -28,8 +28,10 @@ type EventStackTrace struct {
 	Function string `json:"function,omitempty"`
 }
 
-func (l *EventError) attach(le *EventData) {
-	le.Error = l
+type EventErrors []EventError
+
+func (l *EventErrors) attach(le *EventData) {
+	le.Errors = l
 }
 
 // FormatError returns an option you can pass to Event to attach
@@ -44,41 +46,51 @@ func (l *EventError) attach(le *EventData) {
 // It also includes a full strack trace to where FormatError() is called,
 // so you shouldn't normally store a log.Error for reuse (e.g. as a
 // package level variable)
-func FormatError(err error) option {
-	e := &EventError{
-		Message:    err.Error(),
-		StackTrace: make([]EventStackTrace, 0),
-	}
+func FormatErrors(err []error) option {
 
-	k := reflect.Indirect(reflect.ValueOf(err)).Type().Kind()
-	switch k {
-	case reflect.Struct:
-		// We've got a struct type, so make it the top level value
-		e.Data = err
-	default:
-		// We have something else, so nest it inside a Data value
-		e.Data = Data{"value": err}
-	}
+	var e []EventError
 
-	pc := make([]uintptr, 10)
-	n := runtime.Callers(2, pc)
-	if n > 0 {
-		frames := runtime.CallersFrames(pc[:n])
+	for i := range err {
 
-		for {
-			frame, more := frames.Next()
+		errs := EventError{
+			Message:    err[i].Error(),
+			StackTrace: make([]EventStackTrace, 0),
+		}
 
-			e.StackTrace = append(e.StackTrace, EventStackTrace{
-				File:     frame.File,
-				Line:     frame.Line,
-				Function: frame.Function,
-			})
+		k := reflect.Indirect(reflect.ValueOf(err)).Type().Kind()
+		switch k {
+		case reflect.Struct:
+			// We've got a struct type, so make it the top level value
+			errs.Data = err
+		default:
+			// We have something else, so nest it inside a Data value
+			errs.Data = Data{"value": err}
+		}
 
-			if !more {
-				break
+		pc := make([]uintptr, 10)
+		n := runtime.Callers(2, pc)
+		if n > 0 {
+			frames := runtime.CallersFrames(pc[:n])
+
+			for {
+				frame, more := frames.Next()
+
+				errs.StackTrace = append(errs.StackTrace, EventStackTrace{
+					File:     frame.File,
+					Line:     frame.Line,
+					Function: frame.Function,
+				})
+
+				if !more {
+					break
+				}
 			}
 		}
+
+		e = append(e, errs)
 	}
 
-	return e
+	a := EventErrors(e)
+
+	return &a
 }

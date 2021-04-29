@@ -16,13 +16,13 @@ func main() {
 	// comment above each one with the exception that err is reffered to as error
 
 	// log.Event(ctx, , log.Message(error))
-	log.FormatError(err)
+	log.FormatErrors([]error{err})
 
 	// log.Event(ctx, , log.Message(error), logData)
-	log.FormatError(err)
+	log.FormatErrors([]error{err})
 
 	// log.Event(ctx, , log.Message(error), log.Data{"data_1": data1})
-	log.FormatError(err)
+	log.FormatErrors([]error{err})
 
 	// log.Event(ctx, "message", )
 	log.Info(ctx, "message", nil)
