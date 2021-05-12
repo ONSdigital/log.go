@@ -10,7 +10,7 @@ import (
 // It isn't very useful to export, other than for documenting the
 // data structure it outputs.
 type EventError struct {
-	Error      string            `json:"error,omitempty"`
+	Message    string            `json:"message,omitempty"`
 	StackTrace []EventStackTrace `json:"stack_trace,omitempty"`
 	// This uses interface{} type, but should always be a type of kind struct
 	// (which serialises to map[string]interface{})
@@ -28,11 +28,13 @@ type EventStackTrace struct {
 	Function string `json:"function,omitempty"`
 }
 
-func (l *EventError) attach(le *EventData) {
-	le.Error = l
+type EventErrors []EventError
+
+func (l *EventErrors) attach(le *EventData) {
+	le.Errors = l
 }
 
-// Error returns an option you can pass to Event to attach
+// FormatError returns an option you can pass to Event to attach
 // error information to a log event
 //
 // It uses error.Error() to stringify the error value
@@ -41,44 +43,54 @@ func (l *EventError) attach(le *EventData) {
 // data. For a struct{} type, it is included directly. For all
 // other types, it is wrapped in a Data{} struct
 //
-// It also includes a full strack trace to where Error() is called,
+// It also includes a full strack trace to where FormatError() is called,
 // so you shouldn't normally store a log.Error for reuse (e.g. as a
 // package level variable)
-func Error(err error) option {
-	e := &EventError{
-		Error:      err.Error(),
-		StackTrace: make([]EventStackTrace, 0),
-	}
+func FormatErrors(err []error) option {
 
-	k := reflect.Indirect(reflect.ValueOf(err)).Type().Kind()
-	switch k {
-	case reflect.Struct:
-		// We've got a struct type, so make it the top level value
-		e.Data = err
-	default:
-		// We have something else, so nest it inside a Data value
-		e.Data = Data{"value": err}
-	}
+	var e []EventError
 
-	pc := make([]uintptr, 10)
-	n := runtime.Callers(2, pc)
-	if n > 0 {
-		frames := runtime.CallersFrames(pc[:n])
+	for i := range err {
 
-		for {
-			frame, more := frames.Next()
+		errs := EventError{
+			Message:    err[i].Error(),
+			StackTrace: make([]EventStackTrace, 0),
+		}
 
-			e.StackTrace = append(e.StackTrace, EventStackTrace{
-				File:     frame.File,
-				Line:     frame.Line,
-				Function: frame.Function,
-			})
+		k := reflect.Indirect(reflect.ValueOf(err)).Type().Kind()
+		switch k {
+		case reflect.Struct:
+			// We've got a struct type, so make it the top level value
+			errs.Data = err[i]
+		default:
+			// We have something else, so nest it inside a Data value
+			errs.Data = Data{"value": err[i]}
+		}
 
-			if !more {
-				break
+		pc := make([]uintptr, 10)
+		n := runtime.Callers(2, pc)
+		if n > 0 {
+			frames := runtime.CallersFrames(pc[:n])
+
+			for {
+				frame, more := frames.Next()
+
+				errs.StackTrace = append(errs.StackTrace, EventStackTrace{
+					File:     frame.File,
+					Line:     frame.Line,
+					Function: frame.Function,
+				})
+
+				if !more {
+					break
+				}
 			}
 		}
+
+		e = append(e, errs)
 	}
 
-	return e
+	a := EventErrors(e)
+
+	return &a
 }

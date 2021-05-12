@@ -26,6 +26,8 @@ func (w writer) Write(b []byte) (n int, err error) {
 }
 
 func TestLog(t *testing.T) {
+	t.Parallel()
+
 	Convey("Package defaults are right", t, func() {
 		Convey("Namespace defaults to os.Args[0]", func() {
 			So(Namespace, ShouldEqual, os.Args[0])
@@ -78,41 +80,88 @@ func TestLog(t *testing.T) {
 
 		Convey("Event calls eventFuncInst.f", func() {
 			var wasCalled bool
-			eventFuncInst = &eventFunc{func(ctx context.Context, event string, opts ...option) {
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
 			}}
-			Event(nil, "")
+			Event(nil, "", INFO)
 			So(wasCalled, ShouldBeTrue)
 		})
 
+		Convey("Info calls eventFuncInst.f", func() {
+			var wasCalled bool
+			var severityLevel severity
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+				severityLevel = severity
+			}}
+			Info(nil, "", INFO)
+			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, INFO)
+		})
+
+		Convey("Warn calls eventFuncInst.f", func() {
+			var wasCalled bool
+			var severityLevel severity
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+				severityLevel = severity
+			}}
+			Warn(nil, "", WARN)
+			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, WARN)
+		})
+
+		Convey("Error calls eventFuncInst.f", func() {
+			var wasCalled bool
+			var severityLevel severity
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+				severityLevel = severity
+			}}
+			Error(nil, "", errors.New("error"))
+			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, ERROR)
+
+		})
+
+		Convey("Fatal calls eventFuncInst.f", func() {
+			var wasCalled bool
+			var severityLevel severity
+			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
+				wasCalled = true
+				severityLevel = severity
+			}}
+			Fatal(nil, "", errors.New("fatal error"), FATAL)
+			So(wasCalled, ShouldBeTrue)
+			So(severityLevel, ShouldEqual, FATAL)
+		})
+
 		Convey("styler function is set correctly", func() {
+			oldValue := os.Getenv("HUMAN_LOG")
 			Convey("styler is set to styleForMachineFunc by default", func() {
+				os.Setenv("HUMAN_LOG", "")
 				So(initStyler(), ShouldEqual, styleForMachineFunc)
 			})
 			Convey("styler is set to styleForHumanFunc if HUMAN_LOG environment variable is set", func() {
-				oldValue := os.Getenv("HUMAN_LOG")
 				os.Setenv("HUMAN_LOG", "1")
 				So(initStyler(), ShouldEqual, styleForHumanFunc)
-				os.Setenv("HUMAN_LOG", oldValue)
 			})
+			os.Setenv("HUMAN_LOG", oldValue)
 		})
 	})
 
 	Convey("eventWithOptionsCheck panics if the same option is passed multiple times", t, func() {
 		So(func() {
-			eventWithOptionsCheck(nil, "event", Data{}, Data{})
-		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.Data")
+			eventWithOptionsCheck(nil, "event", INFO, Data{}, Data{})
+		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		So(func() {
 			eventWithOptionsCheck(nil, "event", FATAL, INFO)
-		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.severity")
+		}, ShouldPanicWith, "can't pass severity as a parameter")
 
 		Convey("The first duplicate argument causes the panic", func() {
 			So(func() {
-				eventWithOptionsCheck(nil, "event", FATAL, Data{}, INFO, Data{})
-			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.severity")
-			So(func() {
-				eventWithOptionsCheck(nil, "event", FATAL, Data{}, Data{}, INFO)
-			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/log.Data")
+				eventWithOptionsCheck(nil, "event", FATAL, Data{}, &EventHTTP{}, Data{})
+			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		})
 	})
 
@@ -127,7 +176,7 @@ func TestLog(t *testing.T) {
 		var o []option
 		var called bool
 
-		eventWithoutOptionsCheckFunc.f = func(ctx context.Context, event string, opts ...option) {
+		eventWithoutOptionsCheckFunc.f = func(ctx context.Context, event string, severity severity, opts ...option) {
 			called = true
 			c = ctx
 			e = event
@@ -137,25 +186,24 @@ func TestLog(t *testing.T) {
 		ctx := context.Background()
 		So(called, ShouldBeFalse)
 
-		eventWithOptionsCheck(ctx, "test event", FATAL)
-
+		eventWithOptionsCheck(ctx, "test event", INFO, Data{"value": 1})
 		So(called, ShouldBeTrue)
 		So(c, ShouldEqual, ctx)
 		So(e, ShouldEqual, "test event")
 		So(o, ShouldHaveLength, 1)
-		So(o[0], ShouldHaveSameTypeAs, INFO)
-		So(o[0], ShouldEqual, FATAL)
+		So(o[0], ShouldHaveSameTypeAs, Data{})
+		So(o[0], ShouldResemble, Data{"value": 1})
 	})
 
 	Convey("createEvent creates a new event", t, func() {
 
 		Convey("createEvent should set the namespace", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.Namespace, ShouldEqual, Namespace)
 		})
 
 		Convey("createEvent should set the timestamp", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.CreatedAt.Unix(), ShouldBeGreaterThan, 0)
 
 			now := time.Now().UTC()
@@ -170,29 +218,29 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("createEvent should set the event", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.Event, ShouldEqual, "event")
 
-			evt = createEvent(nil, "test")
+			evt = createEvent(nil, "test", INFO)
 			So(evt.Event, ShouldEqual, "test")
 		})
 
 		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
 			ctx := request.WithRequestId(context.Background(), "trace ID")
-			evt := createEvent(ctx, "event")
+			evt := createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "trace ID")
 
 			ctx = request.WithRequestId(context.Background(), "another ID")
-			evt = createEvent(ctx, "event")
+			evt = createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "another ID")
 		})
 
 		Convey("createEvent attaches options to the parent event", func() {
-			evt := createEvent(nil, "event")
+			evt := createEvent(nil, "event", INFO)
 			So(evt.Auth, ShouldBeNil)
 
 			e := Auth(USER, "identity")
-			evt = createEvent(nil, "event", e)
+			evt = createEvent(nil, "event", INFO, e)
 			So(evt.Auth, ShouldEqual, e)
 		})
 
@@ -275,7 +323,7 @@ func TestLog(t *testing.T) {
 			var calledCtx context.Context
 			var calledEvent string
 			var calledOpts []option
-			f := func(ctx context.Context, event string, opts ...option) {
+			f := func(ctx context.Context, event string, severity severity, opts ...option) {
 				called = true
 				calledCtx = ctx
 				calledEvent = event
@@ -288,7 +336,8 @@ func TestLog(t *testing.T) {
 
 			So(called, ShouldBeFalse)
 			isTestMode = false
-			b2 := handleStyleError(ctx, EventData{}, eventFunc{f}, b, errors.New("test"))
+			err := errors.New("test")
+			b2 := handleStyleError(ctx, EventData{}, eventFunc{f}, b, err)
 			isTestMode = true
 			So(called, ShouldBeTrue)
 			So(b2, ShouldBeEmpty)
@@ -297,23 +346,23 @@ func TestLog(t *testing.T) {
 			So(calledEvent, ShouldEqual, "error marshalling event data")
 			So(calledOpts, ShouldHaveLength, 2)
 
-			So(calledOpts[0], ShouldHaveSameTypeAs, &EventError{})
-			ee := calledOpts[0].(*EventError)
-			So(ee.Error, ShouldEqual, "test")
+			So(calledOpts[0], ShouldHaveSameTypeAs, &EventErrors{})
+			ee := calledOpts[0].(*EventErrors)
+			So((*ee)[0].Message, ShouldEqual, "test")
 			// ee.Data is an *errors.errorString, because it was made with errors.New()
-			So(ee.Data, ShouldHaveSameTypeAs, errors.New("test"))
-			So(ee.Data.(error).Error(), ShouldEqual, "test")
+			So((*ee)[0].Data, ShouldHaveSameTypeAs, Data{})
+			So((*ee)[0].Data.(Data)["value"], ShouldEqual, err)
 
 			So(calledOpts[1], ShouldHaveSameTypeAs, Data{})
 			d := calledOpts[1].(Data)
 			So(d, ShouldContainKey, "event_data")
-			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
+			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
 
 		Convey("panic if running in test mode", func() {
 			So(func() {
-				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, opts ...option) {}}, []byte("test"), errors.New("test"))
-			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Error:<nil>}")
+				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {}}, []byte("test"), errors.New("test"))
+			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
 
 	})
@@ -351,7 +400,7 @@ func TestLog(t *testing.T) {
 			return len(b), nil
 		}}
 
-		eventWithoutOptionsCheck(nil, "test")
+		eventWithoutOptionsCheck(nil, "test", INFO)
 
 		So(string(bytesWritten), ShouldResemble, "styled output\n")
 	})
