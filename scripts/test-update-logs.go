@@ -1,3 +1,5 @@
+// +build skip
+
 package scripts
 
 import (
@@ -12,19 +14,29 @@ func main() {
 	ctx := context.Background()
 	err := errors.New("test error")
 
+	logData := log.Data{"field-1": "value 1"}
+
 	// Once script has run against this file the error logs should update to the
 	// comment above each one with the exception that err is reffered to as error
 
-	// log.Event(ctx, , log.Message(error))
-	log.FormatErrors([]error{err})
+	// log.Info(ctx, "test message")
+	log.Event(ctx, "test message", log.INFO)
 
-	// log.Event(ctx, , log.Message(error), logData)
-	log.FormatErrors([]error{err})
+	// log.Info(ctx, "test message", log.Data{"field-1": "value 1", "field-2": "value 2"})
+	log.Event(ctx, "test message", log.INFO, log.Data{"field-1": "value 1", "field-2": "value 2"})
 
-	// log.Event(ctx, , log.Message(error), log.Data{"data_1": data1})
-	log.FormatErrors([]error{err})
+	// log.Info(ctx, "test message", logData)
+	log.Event(ctx, "test message", log.INFO, logData)
 
-	// log.Event(ctx, "message", )
-	log.Info(ctx, "message", nil)
+	// log.Error(ctx, "test mesage", log.FormatErrors([]error{err}))
+	log.Event(ctx, "test message", log.ERROR, log.Error(err))
 
+	// log.Error(ctx, "test mesage", log.FormatErrors([]error{err}), logData)
+	log.Event(ctx, "test message", log.ERROR, log.Error(err), logData)
+
+	// log.Warn(ctx, "test mesage", log.FormatErrors([]error{err}))
+	log.Event(ctx, "test message", log.WARN, log.Error(err))
+
+	// log.Warn(ctx, "test mesage", log.FormatErrors([]error{err}), logData)
+	log.Event(ctx, "test message", log.WARN, log.Error(err), logData)
 }
