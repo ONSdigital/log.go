@@ -83,15 +83,21 @@ func Warn(ctx context.Context, event string, opts ...option) {
 
 // Error wraps the Event function with the severity level set to ERROR
 func Error(ctx context.Context, event string, err error, opts ...option) {
-	errs := FormatErrors([]error{err})
-	opts = append(opts, errs)
+	if err != nil {
+		errs := FormatErrors([]error{err})
+		opts = append(opts, errs)
+	}
+
 	eventFuncInst.f(ctx, event, ERROR, opts...)
 }
 
 // Fatal wraps the Event function with the severity level set to FATAL
 func Fatal(ctx context.Context, event string, err error, opts ...option) {
-	errs := FormatErrors([]error{err})
-	opts = append(opts, errs)
+	if err != nil {
+		errs := FormatErrors([]error{err})
+		opts = append(opts, errs)
+	}
+
 	eventFuncInst.f(ctx, event, FATAL, opts...)
 }
 
