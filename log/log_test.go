@@ -40,7 +40,7 @@ func TestLog(t *testing.T) {
 			//
 			// I'm leaving it in to show the intent, even if it can't be verified by the test
 
-			//So(destination, ShouldEqual, os.Stdout)
+			// So(destination, ShouldEqual, os.Stdout)
 		})
 
 		Convey("fallbackDestination defaults to os.Stderr", func() {
@@ -50,7 +50,7 @@ func TestLog(t *testing.T) {
 			//
 			// I'm leaving it in to show the intent, even if it can't be verified by the test
 
-			//So(destination, ShouldEqual, os.Stderr)
+			// So(destination, ShouldEqual, os.Stderr)
 		})
 
 		Convey("Package detects test mode", func() {
@@ -118,10 +118,18 @@ func TestLog(t *testing.T) {
 				wasCalled = true
 				severityLevel = severity
 			}}
-			Error(nil, "", errors.New("error"))
-			So(wasCalled, ShouldBeTrue)
-			So(severityLevel, ShouldEqual, ERROR)
 
+			Convey("with error value", func() {
+				Error(nil, "", errors.New("error"))
+				So(wasCalled, ShouldBeTrue)
+				So(severityLevel, ShouldEqual, ERROR)
+			})
+
+			Convey("without error value", func() {
+				Error(nil, "", nil)
+				So(wasCalled, ShouldBeTrue)
+				So(severityLevel, ShouldEqual, ERROR)
+			})
 		})
 
 		Convey("Fatal calls eventFuncInst.f", func() {
@@ -131,9 +139,18 @@ func TestLog(t *testing.T) {
 				wasCalled = true
 				severityLevel = severity
 			}}
-			Fatal(nil, "", errors.New("fatal error"), FATAL)
-			So(wasCalled, ShouldBeTrue)
-			So(severityLevel, ShouldEqual, FATAL)
+
+			Convey("with error value", func() {
+				Fatal(nil, "", errors.New("fatal error"), FATAL)
+				So(wasCalled, ShouldBeTrue)
+				So(severityLevel, ShouldEqual, FATAL)
+			})
+
+			Convey("without error value", func() {
+				Fatal(nil, "", nil, FATAL)
+				So(wasCalled, ShouldBeTrue)
+				So(severityLevel, ShouldEqual, FATAL)
+			})
 		})
 
 		Convey("styler function is set correctly", func() {

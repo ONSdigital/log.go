@@ -1,0 +1,16 @@
+---
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: latest
+
+inputs:
+  - name: log.go
+    path: log.go
+
+run:
+  path: log.go/ci/scripts/lint.sh
