@@ -57,7 +57,7 @@ func FormatErrors(err []error) option {
 			StackTrace: make([]EventStackTrace, 0),
 		}
 
-		k := reflect.Indirect(reflect.ValueOf(err)).Type().Kind()
+		k := reflect.Indirect(reflect.ValueOf(err[i])).Type().Kind()
 		switch k {
 		case reflect.Struct:
 			// We've got a struct type, so make it the top level value

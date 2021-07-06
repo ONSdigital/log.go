@@ -50,11 +50,9 @@ func TestFormatErrorsFunc(t *testing.T) {
 		Convey("Check *EventErrors contains the expected fields", func() {
 			myErr := []error{errors.New("test")}
 
-			expectedData := Data{"value": myErr[0]}
-
 			errEventData := FormatErrors(myErr).(*EventErrors)
 			So((*errEventData)[0].Message, ShouldEqual, "test")
-			So((*errEventData)[0].Data, ShouldResemble, expectedData)
+			So((*errEventData)[0].Data, ShouldResemble, myErr[0])
 			So((*errEventData)[0].StackTrace, ShouldHaveLength, 10)
 		})
 	})
@@ -74,8 +72,7 @@ func TestFormatErrorsFunc(t *testing.T) {
 			err := customError{"goodbye"}
 
 			errEventData := FormatErrors([]error{err}).(*EventErrors)
-			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, Data{})
-			So((*errEventData)[0].Data.(Data)["value"], ShouldResemble, err)
+			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err)
 			So((*errEventData)[0].Message, ShouldEqual, "goodbye")
 		})
 
@@ -84,8 +81,7 @@ func TestFormatErrorsFunc(t *testing.T) {
 				CustomField: "new error",
 			}
 			errEventData := FormatErrors([]error{err}).(*EventErrors)
-			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, Data{})
-			So((*errEventData)[0].Data.(Data)["value"], ShouldEqual, err)
+			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err)
 			So((*errEventData)[0].Message, ShouldEqual, "new error")
 		})
 
@@ -108,13 +104,13 @@ func TestFormatErrorsFunc(t *testing.T) {
 		So(errEventData, ShouldHaveLength, 2)
 
 		// First item in error event data
-		So((*errEventData)[0].Data, ShouldHaveSameTypeAs, Data{})
-		So((*errEventData)[0].Data.(Data)["value"], ShouldEqual, err1)
-		So((*errEventData)[0].Message, ShouldEqual, "test error")
+		So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err1)
+		So((*errEventData)[0].Data.(error).Error(), ShouldEqual, err1.Error())
+		So((*errEventData)[0].Message, ShouldEqual, err1.Error())
 
 		// Second item in error event data
-		So((*errEventData)[1].Data, ShouldHaveSameTypeAs, Data{})
-		So((*errEventData)[1].Data.(Data)["value"], ShouldEqual, err2)
-		So((*errEventData)[1].Message, ShouldEqual, "hidden error")
+		So((*errEventData)[1].Data, ShouldHaveSameTypeAs, err2)
+		So((*errEventData)[1].Data.(error).Error(), ShouldEqual, err2.CustomField)
+		So((*errEventData)[1].Message, ShouldEqual, err2.CustomField)
 	})
 }

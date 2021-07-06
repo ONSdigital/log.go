@@ -367,8 +367,8 @@ func TestLog(t *testing.T) {
 			ee := calledOpts[0].(*EventErrors)
 			So((*ee)[0].Message, ShouldEqual, "test")
 			// ee.Data is an *errors.errorString, because it was made with errors.New()
-			So((*ee)[0].Data, ShouldHaveSameTypeAs, Data{})
-			So((*ee)[0].Data.(Data)["value"], ShouldEqual, err)
+			So((*ee)[0].Data, ShouldHaveSameTypeAs, errors.New("test"))
+			So((*ee)[0].Data.(error).Error(), ShouldEqual, "test")
 
 			So(calledOpts[1], ShouldHaveSameTypeAs, Data{})
 			d := calledOpts[1].(Data)
