@@ -105,10 +105,12 @@ func TestFormatErrorsFunc(t *testing.T) {
 
 		// First item in error event data
 		So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err1)
+		So((*errEventData)[0].Data.(error).Error(), ShouldEqual, err1.Error())
 		So((*errEventData)[0].Message, ShouldEqual, err1.Error())
 
 		// Second item in error event data
 		So((*errEventData)[1].Data, ShouldHaveSameTypeAs, err2)
-		So((*errEventData)[1].Message, ShouldEqual, "hidden error")
+		So((*errEventData)[1].Data.(error).Error(), ShouldEqual, err2.CustomField)
+		So((*errEventData)[1].Message, ShouldEqual, err2.CustomField)
 	})
 }
