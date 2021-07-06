@@ -172,7 +172,7 @@ type EventData struct {
 	Data *Data      `json:"data,omitempty"`
 
 	// Error data
-	Errors *EventErrors `json:"error,omitempty"`
+	Errors *EventErrors `json:"errors,omitempty"`
 }
 
 // eventWithOptionsCheck is the event function used when running tests, and
