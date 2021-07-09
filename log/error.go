@@ -6,6 +6,9 @@ import (
 	"runtime"
 )
 
+// EventErrors is an array of error events
+type EventErrors []EventError
+
 // EventError is the data structure used for logging a error event.
 //
 // It isn't very useful to export, other than for documenting the
@@ -28,8 +31,6 @@ type EventStackTrace struct {
 	Line     int    `json:"line,omitempty"`
 	Function string `json:"function,omitempty"`
 }
-
-type EventErrors []EventError
 
 func (l *EventErrors) attach(le *EventData) {
 	le.Errors = l
@@ -105,15 +106,19 @@ func FormatErrors(errs []error) option {
 	return &a
 }
 
+// CustomError defines an error object that abides to the error type
+// with the extension of including data field
 type CustomError struct {
 	Message string                 `json:"message"`
 	Data    map[string]interface{} `json:"data"`
 }
 
+// Error returns the custom error message embedded in CustomError
 func (c *CustomError) Error() string {
 	return c.Message
 }
 
+// ErrorData returns the custom error data embedded in CustomError
 func (c CustomError) ErrorData() map[string]interface{} {
 	return c.Data
 }
