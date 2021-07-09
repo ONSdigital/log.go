@@ -77,7 +77,7 @@ log.Error(context.Background(), "unexpected error", err)
   "created_at": "2020-12-10T11:16:39.156205Z",
   "errors": [
     {
-      "error": "something went wrong",
+      "message": "something went wrong",
       "stack_trace": [
         {
           "file": "/Users/dave/Development/go/ons/log.go/example/main.go",
@@ -117,7 +117,7 @@ log.Error(context.Background(), "unexpected error", err, log.Data{
   },
   "errors": [
     {
-      "error": "something went wrong",
+      "message": "something went wrong",
       "stack_trace": [
         {
           "file": "/Users/dave/Development/go/ons/log.go/example/main.go",
@@ -142,12 +142,15 @@ log.Error(context.Background(), "unexpected error", err, log.Data{
   "severity": 1
 }
 ```
-Logging a custom error event that conatins addintional error data:
+Logging a custom error event that contains additional error data:
 ```go
 // create a custom error
 customError := &log.CustomError{
-  Message: "unexpected error",
-  Data:    map[string]interface{}{"error_code": "1093"},
+  Message: "something went wrong",
+  Data:    map[string]interface{}{
+    "error_code": 1093,
+    "backing_service": "kafka",
+    },
 }
 
 // log an error event where custom error has additional parameters (e.g. Data)
@@ -156,13 +159,12 @@ log.Error(context.Background(), "unexpected error", customErr)
 ```json
 {
   "created_at": "2020-12-10T11:16:39.1564Z",
-  "data": {
-    "additional_data": "some value"
-  },
   "errors": [
     {
+      "message": "something went wrong",
       "data": {
-        "error_code": "1093"
+        "error_code": 1093,
+        "backing_service": "kafka",
       },
       "stack_trace": [
         {
@@ -226,8 +228,11 @@ func main() {
 
   // an example custom error
   customError := &log.CustomError{
-    Message: "unexpected error",
-    Data:    map[string]interface{}{"error_code": "1093"},
+    Message: "something went wrong",
+    Data:    map[string]interface{}{
+      "error_code": 1093,
+      "backing_service": "kafka",
+      },
   }
 
   // Log an error event with additional parameters
@@ -237,7 +242,7 @@ func main() {
 **Notes:**
 
 - `context` can be nil however it's recommended to provide a `ctx` value if you have it available - internally 
-  `log.Event()` will automatically extract certain common fields (e.g. request IDs, http details) if they exist and add 
+  `log.<event e.g. Info, Warn, Error, Fatal>()` will automatically extract certain common fields (e.g. request IDs, http details) if they exist and add 
   them to the `log.Data` parameters map - this helps to ensure events contain as much useful information as possible.
   
 
@@ -245,12 +250,12 @@ func main() {
   additional values - these should be added to `log.Data` (see logging standards doc for a comprehensive overview).
   
 
-- The `log.Event()` interface does not require you to provide an event level but it's recommended you provide this 
-  field if possible/where appropriate.
+- The `log.Event()` interface does not require you to provide a log (severity) level but it's recommended you provide this 
+  field if possible/where appropriate. Better yet use the Wrapper functions `log.Info(...)`, `log.Warn(...)`, `log.Error(...)` and `log.Fatal(...)` to inherit log level.
 
 ### Scripts
 
-* [edit-logs.sh](scripts) - helpful script to assist the updating of go-ns logs to log.go logs; it covers the majority of old logging styles from go-ns and converts them into expected logs that are compatible with this library.
+* [edit-logs.sh](scripts) - helpful script to assist the updating of go-ns logs to v1 log.go logs package; it covers the majority of old logging styles from go-ns and converts them into expected logs that are compatible with version 1 of this library.
 
 ### Licence
 
