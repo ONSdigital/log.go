@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 )
@@ -14,7 +15,7 @@ type EventError struct {
 	StackTrace []EventStackTrace `json:"stack_trace,omitempty"`
 	// This uses interface{} type, but should always be a type of kind struct
 	// (which serialises to map[string]interface{})
-	// See `func Error` switch block for more info
+	// See `func FormatErrors` switch block for more info
 	Data interface{} `json:"data,omitempty"`
 }
 
@@ -34,7 +35,7 @@ func (l *EventErrors) attach(le *EventData) {
 	le.Errors = l
 }
 
-// FormatError returns an option you can pass to Event to attach
+// FormatErrors returns an option you can pass to Event to attach
 // error information to a log event
 //
 // It uses error.Error() to stringify the error value
@@ -43,28 +44,37 @@ func (l *EventErrors) attach(le *EventData) {
 // data. For a struct{} type, it is included directly. For all
 // other types, it is wrapped in a Data{} struct
 //
-// It also includes a full strack trace to where FormatError() is called,
+// It also includes a full strack trace to where FormatErrors() is called,
 // so you shouldn't normally store a log.Error for reuse (e.g. as a
 // package level variable)
-func FormatErrors(err []error) option {
+func FormatErrors(errs []error) option {
 
 	var e []EventError
 
-	for i := range err {
+	for i := range errs {
 
-		errs := EventError{
-			Message:    err[i].Error(),
+		err := EventError{
+			Message:    errs[i].Error(),
 			StackTrace: make([]EventStackTrace, 0),
 		}
 
-		k := reflect.Indirect(reflect.ValueOf(err[i])).Type().Kind()
+		k := reflect.Indirect(reflect.ValueOf(errs[i])).Type().Kind()
 		switch k {
 		case reflect.Struct:
-			// We've got a struct type, so make it the top level value
-			errs.Data = err[i]
+
+			// Check error types
+			switch newErr := errs[i].(type) {
+			case nil:
+				fmt.Println("\nerror does not match any error types")
+			case *CustomError: // matched CustomError type
+				err.Data = newErr.ErrorData()
+			case error:
+				// catch everything else
+			}
+
 		default:
 			// We have something else, so nest it inside a Data value
-			errs.Data = Data{"value": err[i]}
+			err.Data = Data{"value": errs[i]}
 		}
 
 		pc := make([]uintptr, 10)
@@ -75,7 +85,7 @@ func FormatErrors(err []error) option {
 			for {
 				frame, more := frames.Next()
 
-				errs.StackTrace = append(errs.StackTrace, EventStackTrace{
+				err.StackTrace = append(err.StackTrace, EventStackTrace{
 					File:     frame.File,
 					Line:     frame.Line,
 					Function: frame.Function,
@@ -87,10 +97,23 @@ func FormatErrors(err []error) option {
 			}
 		}
 
-		e = append(e, errs)
+		e = append(e, err)
 	}
 
 	a := EventErrors(e)
 
 	return &a
+}
+
+type CustomError struct {
+	Message string                 `json:"message"`
+	Data    map[string]interface{} `json:"data"`
+}
+
+func (c *CustomError) Error() string {
+	return c.Message
+}
+
+func (c CustomError) ErrorData() map[string]interface{} {
+	return c.Data
 }

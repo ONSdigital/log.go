@@ -353,7 +353,8 @@ func TestLog(t *testing.T) {
 
 			So(called, ShouldBeFalse)
 			isTestMode = false
-			err := errors.New("test")
+
+			err := &CustomError{Message: "custom error", Data: map[string]interface{}{"count": 46}}
 			b2 := handleStyleError(ctx, EventData{}, eventFunc{f}, b, err)
 			isTestMode = true
 			So(called, ShouldBeTrue)
@@ -365,10 +366,13 @@ func TestLog(t *testing.T) {
 
 			So(calledOpts[0], ShouldHaveSameTypeAs, &EventErrors{})
 			ee := calledOpts[0].(*EventErrors)
-			So((*ee)[0].Message, ShouldEqual, "test")
-			// ee.Data is an *errors.errorString, because it was made with errors.New()
-			So((*ee)[0].Data, ShouldHaveSameTypeAs, errors.New("test"))
-			So((*ee)[0].Data.(error).Error(), ShouldEqual, "test")
+			So((*ee)[0].Message, ShouldEqual, "custom error")
+
+			// ee.Data is a map[string]interface as it was made with CustomError
+			So((*ee), ShouldHaveLength, 1)
+			So((*ee)[0].Message, ShouldEqual, "custom error")
+			So((*ee)[0].Data, ShouldHaveSameTypeAs, make(map[string]interface{}))
+			So((*ee)[0].Data, ShouldEqual, err.Data)
 
 			So(calledOpts[1], ShouldHaveSameTypeAs, Data{})
 			d := calledOpts[1].(Data)
