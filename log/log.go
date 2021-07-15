@@ -237,7 +237,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		//
 		// note: Message(err) currently ignores this constraint, but it's expected that the `err`
 		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
-		//       which don't marshal any non-marshallable types anyway
+		//       which don't abide by the marshal data transforming process anyway
 		ef.f(ctx, "error marshalling event data", ERROR, FormatErrors([]error{err}), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail

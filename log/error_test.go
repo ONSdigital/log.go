@@ -107,4 +107,9 @@ func TestFormatErrorsFunc(t *testing.T) {
 		So((*errEventData)[1].Data, ShouldEqual, err2.Data)
 		So((*errEventData)[1].Message, ShouldEqual, err2.Message)
 	})
+
+	Convey("If a nil value is passed into FormatErrors, check no error event data is returned", t, func() {
+		errEventData := FormatErrors([]error{nil}).(*EventErrors)
+		So(errEventData, ShouldHaveLength, 0)
+	})
 }

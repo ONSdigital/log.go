@@ -1,7 +1,6 @@
 package log
 
 import (
-	"fmt"
 	"reflect"
 	"runtime"
 )
@@ -53,6 +52,9 @@ func FormatErrors(errs []error) option {
 	var e []EventError
 
 	for i := range errs {
+		if errs[i] == nil {
+			continue
+		}
 
 		err := EventError{
 			Message:    errs[i].Error(),
@@ -65,8 +67,6 @@ func FormatErrors(errs []error) option {
 
 			// check error types
 			switch newErr := errs[i].(type) {
-			case nil:
-				fmt.Println("\nerror does not match any error types")
 			case *CustomError: // matched CustomError type
 				err.Data = newErr.ErrorData()
 			case error:
