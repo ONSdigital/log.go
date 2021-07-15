@@ -17,7 +17,7 @@ func main() {
 	logData := log.Data{"field-1": "value 1"}
 
 	// Once script has run against this file the error logs should update to the
-	// comment above each one with the exception that err is reffered to as error
+	// comment above each one with the exception that err is referred to as error
 
 	// log.Info(ctx, "test message")
 	log.Event(ctx, "test message", log.INFO)
@@ -28,15 +28,15 @@ func main() {
 	// log.Info(ctx, "test message", logData)
 	log.Event(ctx, "test message", log.INFO, logData)
 
-	// log.Error(ctx, "test mesage", log.FormatErrors([]error{err}))
+	// log.Error(ctx, "test message", log.FormatErrors([]error{err}))
 	log.Event(ctx, "test message", log.ERROR, log.Error(err))
 
-	// log.Error(ctx, "test mesage", log.FormatErrors([]error{err}), logData)
+	// log.Error(ctx, "test message", log.FormatErrors([]error{err}), logData)
 	log.Event(ctx, "test message", log.ERROR, log.Error(err), logData)
 
-	// log.Warn(ctx, "test mesage", log.FormatErrors([]error{err}))
+	// log.Warn(ctx, "test message", log.FormatErrors([]error{err}))
 	log.Event(ctx, "test message", log.WARN, log.Error(err))
 
-	// log.Warn(ctx, "test mesage", log.FormatErrors([]error{err}), logData)
+	// log.Warn(ctx, "test message", log.FormatErrors([]error{err}), logData)
 	log.Event(ctx, "test message", log.WARN, log.Error(err), logData)
 }

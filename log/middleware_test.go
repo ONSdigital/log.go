@@ -75,7 +75,7 @@ func TestResponseCapture(t *testing.T) {
 			So(*r.statusCode, ShouldEqual, 501)
 		})
 
-		Convey("responesCapture records the status code when skipping WriteHeader", func() {
+		Convey("responseCapture records the status code when skipping WriteHeader", func() {
 			r := &responseCapture{&responseWriter{}, nil, 0}
 			So(r.statusCode, ShouldBeNil)
 			r.Write([]byte{})
@@ -125,6 +125,7 @@ func TestMiddleware(t *testing.T) {
 			So(efm.capEvent, ShouldEqual, "nil request in middleware handler")
 			So(efm.capOpts, ShouldHaveLength, 1)
 			So(efm.capOpts[0], ShouldHaveSameTypeAs, Data{})
+			So(efm.severity, ShouldEqual, 3)
 		})
 
 		Convey("Inner handler is called by middleware", func() {
@@ -145,9 +146,9 @@ func TestMiddleware(t *testing.T) {
 			So(events, ShouldHaveLength, 0)
 
 			req, err := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", nil)
+			So(err, ShouldBeNil)
 			ctx := context.Background()
 			req = req.WithContext(ctx)
-			So(err, ShouldBeNil)
 			So(req, ShouldNotBeNil)
 			m.ServeHTTP(&responseWriter{}, req)
 
@@ -160,23 +161,23 @@ func TestMiddleware(t *testing.T) {
 				So(events[0].capOpts, ShouldHaveLength, 1)
 				So(events[0].capOpts[0], ShouldImplement, (*option)(nil))
 				So(events[0].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
-				http := events[0].capOpts[0].(*EventHTTP)
+				eventHTTP := events[0].capOpts[0].(*EventHTTP)
 
-				So(http.StatusCode, ShouldNotBeNil)
-				So(*http.StatusCode, ShouldEqual, 0)
-				So(http.Method, ShouldEqual, "GET")
+				So(eventHTTP.StatusCode, ShouldNotBeNil)
+				So(*eventHTTP.StatusCode, ShouldEqual, 0)
+				So(eventHTTP.Method, ShouldEqual, "GET")
 
-				So(http.Scheme, ShouldEqual, "http")
-				So(http.Host, ShouldEqual, "localhost")
-				So(http.Port, ShouldEqual, 1234)
-				So(http.Path, ShouldEqual, "/a/b/c")
-				So(http.Query, ShouldEqual, "x=1&y=2")
+				So(eventHTTP.Scheme, ShouldEqual, "http")
+				So(eventHTTP.Host, ShouldEqual, "localhost")
+				So(eventHTTP.Port, ShouldEqual, 1234)
+				So(eventHTTP.Path, ShouldEqual, "/a/b/c")
+				So(eventHTTP.Query, ShouldEqual, "x=1&y=2")
 
 				// TODO more than nil check test for start/end times
-				So(http.StartedAt, ShouldNotBeNil)
-				So(http.EndedAt, ShouldBeNil)
-				So(http.Duration, ShouldBeNil)
-				So(http.ResponseContentLength, ShouldEqual, 0)
+				So(eventHTTP.StartedAt, ShouldNotBeNil)
+				So(eventHTTP.EndedAt, ShouldBeNil)
+				So(eventHTTP.Duration, ShouldBeNil)
+				So(eventHTTP.ResponseContentLength, ShouldEqual, 0)
 			})
 
 			Convey("End event is logged", func() {
@@ -186,23 +187,23 @@ func TestMiddleware(t *testing.T) {
 				So(events[1].capOpts, ShouldHaveLength, 1)
 				So(events[1].capOpts[0], ShouldImplement, (*option)(nil))
 				So(events[1].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
-				http := events[1].capOpts[0].(*EventHTTP)
+				eventHTTP := events[1].capOpts[0].(*EventHTTP)
 
-				So(http.StatusCode, ShouldNotBeNil)
-				So(*http.StatusCode, ShouldEqual, 200)
-				So(http.Method, ShouldEqual, "GET")
+				So(eventHTTP.StatusCode, ShouldNotBeNil)
+				So(*eventHTTP.StatusCode, ShouldEqual, 200)
+				So(eventHTTP.Method, ShouldEqual, "GET")
 
-				So(http.Scheme, ShouldEqual, "http")
-				So(http.Host, ShouldEqual, "localhost")
-				So(http.Port, ShouldEqual, 1234)
-				So(http.Path, ShouldEqual, "/a/b/c")
-				So(http.Query, ShouldEqual, "x=1&y=2")
+				So(eventHTTP.Scheme, ShouldEqual, "http")
+				So(eventHTTP.Host, ShouldEqual, "localhost")
+				So(eventHTTP.Port, ShouldEqual, 1234)
+				So(eventHTTP.Path, ShouldEqual, "/a/b/c")
+				So(eventHTTP.Query, ShouldEqual, "x=1&y=2")
 
 				// TODO more than nil check test for start/end times
-				So(http.StartedAt, ShouldNotBeNil)
-				So(http.EndedAt, ShouldNotBeNil)
-				So(http.Duration, ShouldNotBeNil)
-				So(http.ResponseContentLength, ShouldEqual, 0)
+				So(eventHTTP.StartedAt, ShouldNotBeNil)
+				So(eventHTTP.EndedAt, ShouldNotBeNil)
+				So(eventHTTP.Duration, ShouldNotBeNil)
+				So(eventHTTP.ResponseContentLength, ShouldEqual, 0)
 			})
 		})
 	})

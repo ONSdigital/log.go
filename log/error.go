@@ -45,7 +45,7 @@ func (l *EventErrors) attach(le *EventData) {
 // data. For a struct{} type, it is included directly. For all
 // other types, it is wrapped in a Data{} struct
 //
-// It also includes a full strack trace to where FormatErrors() is called,
+// It also includes a full stack trace to where FormatErrors() is called,
 // so you shouldn't normally store a log.Error for reuse (e.g. as a
 // package level variable)
 func FormatErrors(errs []error) option {
@@ -63,7 +63,7 @@ func FormatErrors(errs []error) option {
 		switch k {
 		case reflect.Struct:
 
-			// Check error types
+			// check error types
 			switch newErr := errs[i].(type) {
 			case nil:
 				fmt.Println("\nerror does not match any error types")
@@ -74,7 +74,7 @@ func FormatErrors(errs []error) option {
 			}
 
 		default:
-			// We have something else, so nest it inside a Data value
+			// we have something else, so nest it inside a Data value
 			err.Data = Data{"value": errs[i]}
 		}
 

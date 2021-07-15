@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	request "github.com/ONSdigital/dp-net/request"
-	prettyjson "github.com/hokaccha/go-prettyjson"
+	"github.com/ONSdigital/dp-net/request"
+	"github.com/hokaccha/go-prettyjson"
 )
 
 // Namespace is the log namespace included with every log event.
@@ -199,7 +199,7 @@ func eventWithOptionsCheck(ctx context.Context, event string, severity severity,
 //
 // It doesn't do any log options checks to minimise the runtime performance overhead
 func eventWithoutOptionsCheck(ctx context.Context, event string, severity severity, opts ...option) {
-	print(styler.f(ctx, *createEvent(ctx, event, severity, opts...), eventFunc{eventWithoutOptionsCheck}))
+	printEvent(styler.f(ctx, *createEvent(ctx, event, severity, opts...), eventFunc{eventWithoutOptionsCheck}))
 }
 
 // createEvent creates a new event struct and attaches the options to it
@@ -267,7 +267,7 @@ func styleForHuman(ctx context.Context, e EventData, ef eventFunc) []byte {
 	return handleStyleError(ctx, e, ef, b, err)
 }
 
-func print(b []byte) {
+func printEvent(b []byte) {
 	if len(b) == 0 {
 		return
 	}

@@ -156,14 +156,20 @@ func TestLog(t *testing.T) {
 		Convey("styler function is set correctly", func() {
 			oldValue := os.Getenv("HUMAN_LOG")
 			Convey("styler is set to styleForMachineFunc by default", func() {
-				os.Setenv("HUMAN_LOG", "")
+				if err := os.Setenv("HUMAN_LOG", ""); err != nil {
+					t.Errorf("failed to set log styling: %v", err)
+				}
 				So(initStyler(), ShouldEqual, styleForMachineFunc)
 			})
 			Convey("styler is set to styleForHumanFunc if HUMAN_LOG environment variable is set", func() {
-				os.Setenv("HUMAN_LOG", "1")
+				if err := os.Setenv("HUMAN_LOG", "1"); err != nil {
+					t.Errorf("failed to set human log styling: %v", err)
+				}
 				So(initStyler(), ShouldEqual, styleForHumanFunc)
 			})
-			os.Setenv("HUMAN_LOG", oldValue)
+			if err := os.Setenv("HUMAN_LOG", oldValue); err != nil {
+				t.Fatalf("failed to reset log styling: %v", err)
+			}
 		})
 	})
 
@@ -290,7 +296,7 @@ func TestLog(t *testing.T) {
 			So(destCalled, ShouldBeFalse)
 			So(fallbackDestCalled, ShouldBeFalse)
 
-			print([]byte{})
+			printEvent([]byte{})
 
 			So(destCalled, ShouldBeFalse)
 			So(fallbackDestCalled, ShouldBeFalse)
@@ -300,7 +306,7 @@ func TestLog(t *testing.T) {
 			So(destCalled, ShouldBeFalse)
 			So(fallbackDestCalled, ShouldBeFalse)
 
-			print([]byte("test"))
+			printEvent([]byte("test"))
 
 			So(destCalled, ShouldBeTrue)
 			So(fallbackDestCalled, ShouldBeFalse)
@@ -315,7 +321,7 @@ func TestLog(t *testing.T) {
 				destIsError = false
 			}()
 
-			print([]byte("test"))
+			printEvent([]byte("test"))
 
 			So(destCalled, ShouldBeTrue)
 			So(fallbackDestCalled, ShouldBeTrue)
@@ -340,11 +346,13 @@ func TestLog(t *testing.T) {
 			var calledCtx context.Context
 			var calledEvent string
 			var calledOpts []option
+			var calledSeverity severity
 			f := func(ctx context.Context, event string, severity severity, opts ...option) {
 				called = true
 				calledCtx = ctx
 				calledEvent = event
 				calledOpts = opts
+				calledSeverity = severity
 			}
 
 			b := []byte("test")
@@ -363,14 +371,14 @@ func TestLog(t *testing.T) {
 			So(calledCtx, ShouldEqual, ctx)
 			So(calledEvent, ShouldEqual, "error marshalling event data")
 			So(calledOpts, ShouldHaveLength, 2)
+			So(calledSeverity, ShouldEqual, 1)
 
 			So(calledOpts[0], ShouldHaveSameTypeAs, &EventErrors{})
 			ee := calledOpts[0].(*EventErrors)
+			So(*ee, ShouldHaveLength, 1)
 			So((*ee)[0].Message, ShouldEqual, "custom error")
 
 			// ee.Data is a map[string]interface as it was made with CustomError
-			So((*ee), ShouldHaveLength, 1)
-			So((*ee)[0].Message, ShouldEqual, "custom error")
 			So((*ee)[0].Data, ShouldHaveSameTypeAs, make(map[string]interface{}))
 			So((*ee)[0].Data, ShouldEqual, err.Data)
 

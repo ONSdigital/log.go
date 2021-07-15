@@ -29,7 +29,7 @@ func TestFormatErrorsFunc(t *testing.T) {
 		origin := (*errEventData)[0].StackTrace[0]
 		So(origin.File, ShouldEndWith, "log.go/log/error_test.go")
 
-		// If this test fails, check the `errEventData := Error(err).(*EventErrors)` line is still line 34!
+		// If this test fails, check the `errEventData := Error(err).(*EventErrors)` line is still line 26 of the this test file!
 		So(origin.Line, ShouldEqual, 26)
 		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/v2/log.TestFormatErrorsFunc.func1")
 	})
