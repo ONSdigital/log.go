@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	request "github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/dp-net/request"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
