@@ -9,6 +9,7 @@ type eventFuncMock struct {
 	capEvent      string
 	capOpts       []option
 	hasBeenCalled bool
+	severity      severity
 
 	onEvent func(e eventFuncMock)
 }
@@ -18,6 +19,7 @@ func (e *eventFuncMock) Event(ctx context.Context, event string, severity severi
 	e.capEvent = event
 	e.capOpts = opts
 	e.hasBeenCalled = true
+	e.severity = severity
 
 	if e.onEvent != nil {
 		e.onEvent(eventFuncMock{
@@ -25,6 +27,7 @@ func (e *eventFuncMock) Event(ctx context.Context, event string, severity severi
 			capEvent:      event,
 			capOpts:       opts,
 			hasBeenCalled: true,
+			severity:      severity,
 		})
 	}
 }

@@ -8,14 +8,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type customError struct {
-	CustomField string `json:"custom_field"`
-}
-
-func (c customError) Error() string {
-	return c.CustomField
-}
-
 type customIntError int
 
 func (c customIntError) Error() string {
@@ -37,8 +29,8 @@ func TestFormatErrorsFunc(t *testing.T) {
 		origin := (*errEventData)[0].StackTrace[0]
 		So(origin.File, ShouldEndWith, "log.go/log/error_test.go")
 
-		// If this test fails, check the `errEventData := Error(err).(*EventErrors)` line is still line 34!
-		So(origin.Line, ShouldEqual, 34)
+		// If this test fails, check the `errEventData := Error(err).(*EventErrors)` line is still line 26 of the this test file!
+		So(origin.Line, ShouldEqual, 26)
 		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/v2/log.TestFormatErrorsFunc.func1")
 	})
 
@@ -51,8 +43,8 @@ func TestFormatErrorsFunc(t *testing.T) {
 			myErr := []error{errors.New("test")}
 
 			errEventData := FormatErrors(myErr).(*EventErrors)
-			So((*errEventData)[0].Message, ShouldEqual, "test")
-			So((*errEventData)[0].Data, ShouldResemble, myErr[0])
+			So((*errEventData)[0].Message, ShouldEqual, myErr[0].Error())
+			So((*errEventData)[0].Data, ShouldBeNil)
 			So((*errEventData)[0].StackTrace, ShouldHaveLength, 10)
 		})
 	})
@@ -69,20 +61,22 @@ func TestFormatErrorsFunc(t *testing.T) {
 
 	Convey("Check event error Data is set to error", t, func() {
 		Convey("For a value of kind 'Struct' is embedded directly via a custom error", func() {
-			err := customError{"goodbye"}
+			err := &CustomError{Message: "goodbye"}
 
 			errEventData := FormatErrors([]error{err}).(*EventErrors)
-			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err)
+			So((*errEventData)[0].Data, ShouldBeNil)
 			So((*errEventData)[0].Message, ShouldEqual, "goodbye")
 		})
 
 		Convey("For a value of kind 'Ptr->Struct' is embedded directly", func() {
-			err := &customError{
-				CustomField: "new error",
+			err := &CustomError{
+				Message: "new error",
+				Data:    map[string]interface{}{"new_data_variable": "546"},
 			}
 			errEventData := FormatErrors([]error{err}).(*EventErrors)
-			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err)
 			So((*errEventData)[0].Message, ShouldEqual, "new error")
+			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err.Data)
+			So((*errEventData)[0].Data, ShouldEqual, err.Data)
 		})
 
 		Convey("For a value of other kinds (e.g. 'Int') is wrapped in Data{value:<err>}", func() {
@@ -96,21 +90,26 @@ func TestFormatErrorsFunc(t *testing.T) {
 
 	Convey("Check first two items in *EventErrors and contains the expected error event data", t, func() {
 		err1 := errors.New("test error")
-		err2 := &customError{
-			CustomField: "hidden error",
+		err2 := &CustomError{
+			Message: "hidden error",
+			Data:    map[string]interface{}{"count": 12},
 		}
 
 		errEventData := FormatErrors([]error{err1, err2}).(*EventErrors)
 		So(errEventData, ShouldHaveLength, 2)
 
 		// First item in error event data
-		So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err1)
-		So((*errEventData)[0].Data.(error).Error(), ShouldEqual, err1.Error())
+		So((*errEventData)[0].Data, ShouldBeNil)
 		So((*errEventData)[0].Message, ShouldEqual, err1.Error())
 
 		// Second item in error event data
-		So((*errEventData)[1].Data, ShouldHaveSameTypeAs, err2)
-		So((*errEventData)[1].Data.(error).Error(), ShouldEqual, err2.CustomField)
-		So((*errEventData)[1].Message, ShouldEqual, err2.CustomField)
+		So((*errEventData)[1].Data, ShouldHaveSameTypeAs, make(map[string]interface{}))
+		So((*errEventData)[1].Data, ShouldEqual, err2.Data)
+		So((*errEventData)[1].Message, ShouldEqual, err2.Message)
+	})
+
+	Convey("If a nil value is passed into FormatErrors, check no error event data is returned", t, func() {
+		errEventData := FormatErrors([]error{nil}).(*EventErrors)
+		So(errEventData, ShouldHaveLength, 0)
 	})
 }

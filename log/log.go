@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	request "github.com/ONSdigital/dp-net/request"
-	prettyjson "github.com/hokaccha/go-prettyjson"
+	"github.com/ONSdigital/dp-net/request"
+	"github.com/hokaccha/go-prettyjson"
 )
 
 // Namespace is the log namespace included with every log event.
@@ -199,7 +199,7 @@ func eventWithOptionsCheck(ctx context.Context, event string, severity severity,
 //
 // It doesn't do any log options checks to minimise the runtime performance overhead
 func eventWithoutOptionsCheck(ctx context.Context, event string, severity severity, opts ...option) {
-	print(styler.f(ctx, *createEvent(ctx, event, severity, opts...), eventFunc{eventWithoutOptionsCheck}))
+	printEvent(styler.f(ctx, *createEvent(ctx, event, severity, opts...), eventFunc{eventWithoutOptionsCheck}))
 }
 
 // createEvent creates a new event struct and attaches the options to it
@@ -237,7 +237,7 @@ func handleStyleError(ctx context.Context, e EventData, ef eventFunc, b []byte, 
 		//
 		// note: Message(err) currently ignores this constraint, but it's expected that the `err`
 		// 		 passed in by the caller will have come from json.Marshal or prettyjson.Marshal
-		//       which don't marshal any non-marshallable types anyway
+		//       which don't abide by the marshal data transforming process anyway
 		ef.f(ctx, "error marshalling event data", ERROR, FormatErrors([]error{err}), Data{"event_data": fmt.Sprintf("%+v", e)})
 
 		// if we're in test mode, we'll also panic to cause tests to fail
@@ -267,7 +267,7 @@ func styleForHuman(ctx context.Context, e EventData, ef eventFunc) []byte {
 	return handleStyleError(ctx, e, ef, b, err)
 }
 
-func print(b []byte) {
+func printEvent(b []byte) {
 	if len(b) == 0 {
 		return
 	}

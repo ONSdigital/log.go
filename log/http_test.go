@@ -12,17 +12,17 @@ func TestHTTP(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", nil)
 
 	Convey("HTTP function returns a *EventHTTP", t, func() {
-		http := HTTP(req, 0, 0, nil, nil)
-		So(http, ShouldHaveSameTypeAs, &EventHTTP{})
-		So(http, ShouldImplement, (*option)(nil))
+		eventHTTP := HTTP(req, 0, 0, nil, nil)
+		So(eventHTTP, ShouldHaveSameTypeAs, &EventHTTP{})
+		So(eventHTTP, ShouldImplement, (*option)(nil))
 
 		Convey("*EventHTTP has the correct fields", func() {
 			startTime := time.Now().UTC().Add(time.Second * -1)
 			endTime := time.Now().UTC()
 			duration := endTime.Sub(startTime)
 
-			http := HTTP(req, 101, 123, &startTime, &endTime)
-			httpEvent := http.(*EventHTTP)
+			eventHTTP := HTTP(req, 101, 123, &startTime, &endTime)
+			httpEvent := eventHTTP.(*EventHTTP)
 
 			So(httpEvent.StatusCode, ShouldNotBeNil)
 			So(*httpEvent.StatusCode, ShouldEqual, 101)
@@ -46,24 +46,24 @@ func TestHTTP(t *testing.T) {
 		event := &EventData{}
 		So(event.HTTP, ShouldBeNil)
 
-		http := EventHTTP{}
-		http.attach(event)
+		eventHTTP := EventHTTP{}
+		eventHTTP.attach(event)
 
-		So(event.HTTP, ShouldResemble, &http)
+		So(event.HTTP, ShouldResemble, &eventHTTP)
 	})
 
 	Convey("Duration should be nil if startedAt is nil", t, func() {
 		endTime := time.Now().UTC()
-		http := HTTP(req, 101, 123, nil, &endTime)
-		httpEvent := http.(*EventHTTP)
+		eventHTTP := HTTP(req, 101, 123, nil, &endTime)
+		httpEvent := eventHTTP.(*EventHTTP)
 
 		So(httpEvent.Duration, ShouldBeNil)
 	})
 
 	Convey("Duration should be nil if endedAt is nil", t, func() {
 		startTime := time.Now().UTC()
-		http := HTTP(req, 101, 123, &startTime, nil)
-		httpEvent := http.(*EventHTTP)
+		eventHTTP := HTTP(req, 101, 123, &startTime, nil)
+		httpEvent := eventHTTP.(*EventHTTP)
 
 		So(httpEvent.Duration, ShouldBeNil)
 	})
