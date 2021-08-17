@@ -39,7 +39,7 @@ func TestLog(t *testing.T) {
 			//
 			// I'm leaving it in to show the intent, even if it can't be verified by the test
 
-			//So(destination, ShouldEqual, os.Stdout)
+			// So(destination, ShouldEqual, os.Stdout)
 		})
 
 		Convey("fallbackDestination defaults to os.Stderr", func() {
@@ -49,7 +49,7 @@ func TestLog(t *testing.T) {
 			//
 			// I'm leaving it in to show the intent, even if it can't be verified by the test
 
-			//So(destination, ShouldEqual, os.Stderr)
+			// So(destination, ShouldEqual, os.Stderr)
 		})
 
 		Convey("Package detects test mode", func() {
