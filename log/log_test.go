@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -27,8 +28,8 @@ func (w writer) Write(b []byte) (n int, err error) {
 
 func TestLog(t *testing.T) {
 	Convey("Package defaults are right", t, func() {
-		Convey("Namespace defaults to os.Args[0]", func() {
-			So(Namespace, ShouldEqual, os.Args[0])
+		Convey("Namespace defaults to last element of path supplied as os.Args[0]", func() {
+			So(Namespace, ShouldEqual, path.Base(os.Args[0]))
 		})
 
 		Convey("destination defaults to os.Stdout", func() {

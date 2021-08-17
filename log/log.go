@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"reflect"
 	"strconv"
 	"time"
@@ -19,7 +20,7 @@ import (
 //
 // It defaults to the application binary name, but this should
 // normally be set to a more sensible name on application startup
-var Namespace = os.Args[0]
+var Namespace = path.Base(os.Args[0])
 
 var destination io.Writer = os.Stdout
 var fallbackDestination io.Writer = os.Stderr
