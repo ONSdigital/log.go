@@ -293,3 +293,15 @@ func printEvent(b []byte) {
 		}
 	}
 }
+
+// SetDestination allows you to set the destination and fallback destination
+// for log output. Pass nil to either value to skip changing it.
+func SetDestination(dest, fbDest io.Writer){
+	if dest != nil{
+		destination = dest
+	}
+
+	if fbDest != nil{
+		fallbackDestination = fbDest
+	}
+}
