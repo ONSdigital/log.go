@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ONSdigital/dp-net/request"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -24,6 +22,11 @@ func (w writer) Write(b []byte) (n int, err error) {
 	}
 
 	return 0, nil
+}
+
+// withRequestId sets the correlation id on the context
+func withRequestId(ctx context.Context, correlationId string) context.Context {
+	return context.WithValue(ctx, "request-id", correlationId)
 }
 
 func TestLog(t *testing.T) {
@@ -250,11 +253,11 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
-			ctx := request.WithRequestId(context.Background(), "trace ID")
+			ctx := withRequestId(context.Background(), "trace ID")
 			evt := createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "trace ID")
 
-			ctx = request.WithRequestId(context.Background(), "another ID")
+			ctx = withRequestId(context.Background(), "another ID")
 			evt = createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "another ID")
 		})

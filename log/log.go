@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ONSdigital/dp-net/request"
 	"github.com/hokaccha/go-prettyjson"
 )
 
@@ -213,7 +212,7 @@ func createEvent(ctx context.Context, event string, severity severity, opts ...o
 	}
 
 	if ctx != nil {
-		e.TraceID = request.GetRequestId(ctx)
+		e.TraceID = getRequestId(ctx)
 	}
 
 	// loop around each log option and call its attach method, which takes care
@@ -223,6 +222,11 @@ func createEvent(ctx context.Context, event string, severity severity, opts ...o
 	}
 
 	return &e
+}
+
+func getRequestId(ctx context.Context) string {
+	correlationId, _ := ctx.Value("request-id").(string)
+	return correlationId
 }
 
 // handleStyleError handles any errors from JSON marshalling in one of the styler functions
