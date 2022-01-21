@@ -10,6 +10,7 @@ import (
 	"path"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/hokaccha/go-prettyjson"
@@ -21,7 +22,9 @@ import (
 // normally be set to a more sensible name on application startup
 var Namespace = path.Base(os.Args[0])
 
+var destinationMutex sync.Mutex
 var destination io.Writer = os.Stdout
+var fallbackDestinationMutex sync.Mutex
 var fallbackDestination io.Writer = os.Stderr
 
 var isTestMode bool
@@ -278,8 +281,12 @@ func printEvent(b []byte) {
 	}
 
 	// try and write to stdout
+	destinationMutex.Lock()
+	defer destinationMutex.Unlock()
 	if n, err := fmt.Fprintln(destination, string(b)); n != len(b)+1 || err != nil {
 		// if that fails, try and write to stderr
+		fallbackDestinationMutex.Lock()
+		defer fallbackDestinationMutex.Unlock()
 		if n, err := fmt.Fprintln(fallbackDestination, string(b)); n != len(b)+1 || err != nil {
 			// if that fails, panic!
 			//
@@ -302,10 +309,14 @@ func printEvent(b []byte) {
 // for log output. Pass nil to either value to skip changing it.
 func SetDestination(dest, fbDest io.Writer) {
 	if dest != nil {
+		destinationMutex.Lock()
+		defer destinationMutex.Unlock()
 		destination = dest
 	}
 
 	if fbDest != nil {
+		fallbackDestinationMutex.Lock()
+		defer fallbackDestinationMutex.Unlock()
 		fallbackDestination = fbDest
 	}
 }
