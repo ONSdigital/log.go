@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"flag"
+	. "github.com/smartystreets/goconvey/convey"
+	"io"
 	"os"
 	"path"
 	"testing"
 	"time"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 type writer struct {
@@ -437,4 +437,53 @@ func TestLog(t *testing.T) {
 
 		So(string(bytesWritten), ShouldResemble, "styled output\n")
 	})
+
+	Convey("destination is protected against data races", t, func() {
+
+		Convey("Given a process logging from a goroutine", func() {
+			letTheRaceBegin := make(chan bool)
+			letTheRaceEnd := make(chan bool)
+			go func() {
+				<-letTheRaceBegin
+				printEvent([]byte{1, 2, 3})
+				close(letTheRaceEnd)
+			}()
+
+			Convey("When I change the destination it should not cause a data race", func() {
+				close(letTheRaceBegin)
+				SetDestination(io.Discard, nil)
+				<-letTheRaceEnd
+				So(true, ShouldEqual, true) // all we are testing for is the absence of detecting a data race
+			})
+
+		})
+
+		Convey("Given the standard destination returns an error", func() {
+			destination = WriteWillError{}
+
+			Convey("And a process logging from a goroutine", func() {
+				letTheRaceBegin := make(chan bool)
+				letTheRaceEnd := make(chan bool)
+				go func() {
+					<-letTheRaceBegin
+					printEvent([]byte{4, 5, 6})
+					close(letTheRaceEnd)
+				}()
+
+				Convey("When I change the fallback destination it should not cause a data race", func() {
+					close(letTheRaceBegin)
+					SetDestination(nil, io.Discard)
+					<-letTheRaceEnd
+					So(true, ShouldEqual, true) // all we are testing for is the absence of detecting a data race
+				})
+			})
+		})
+	})
+}
+
+type WriteWillError struct {
+}
+
+func (w WriteWillError) Write(p []byte) (n int, err error) {
+	return 0, errors.New("oops")
 }
