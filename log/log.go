@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hokaccha/go-prettyjson"
+	v1request "github.com/ONSdigital/dp-net/request"
 )
 
 // Namespace is the log namespace included with every log event.
@@ -228,7 +229,7 @@ func createEvent(ctx context.Context, event string, severity severity, opts ...o
 }
 
 func getRequestId(ctx context.Context) string {
-	correlationId, _ := ctx.Value("request-id").(string)
+	correlationId, _ := ctx.Value(v1request.ContextKey("request-id")).(string)
 	return correlationId
 }
 
