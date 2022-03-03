@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"flag"
-	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"os"
 	"path"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-net/request"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 type writer struct {
@@ -476,6 +478,46 @@ func TestLog(t *testing.T) {
 					<-letTheRaceEnd
 					So(true, ShouldEqual, true) // all we are testing for is the absence of detecting a data race
 				})
+			})
+		})
+	})
+}
+
+func TestGetRequestID(t *testing.T) {
+	t.Parallel()
+
+	Convey("Given context contains a request id key of type string", t, func() {
+		testCtx := context.WithValue(context.Background(), "request-id", "test123")
+
+		Convey("When I try to retrieve the request id from the context", func() {
+			requestID := getRequestId(testCtx)
+
+			Convey("Then the request id value is returned", func() {
+				So(requestID, ShouldEqual, "test123")
+			})
+		})
+	})
+
+	Convey("Given context contains a request id key of type request.ContextKey", t, func() {
+		testCtx := context.WithValue(context.Background(), request.RequestIdKey, "test321")
+
+		Convey("When I try to retrieve the request id from the context", func() {
+			requestID := getRequestId(testCtx)
+
+			Convey("Then the request id value is returned", func() {
+				So(requestID, ShouldEqual, "test321")
+			})
+		})
+	})
+
+	Convey("Given context contains does not contain a request id value", t, func() {
+		testCtx := context.Background()
+
+		Convey("When I try to retrieve the request id from the context", func() {
+			requestID := getRequestId(testCtx)
+
+			Convey("Then the request id value is returned", func() {
+				So(requestID, ShouldBeEmpty)
 			})
 		})
 	})
