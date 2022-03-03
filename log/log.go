@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	request "github.com/ONSdigital/dp-net/v2/request"
+	"github.com/ONSdigital/dp-net/v2/request"
 	"github.com/hokaccha/go-prettyjson"
 )
 
@@ -229,12 +229,17 @@ func createEvent(ctx context.Context, event string, severity severity, opts ...o
 }
 
 func getRequestId(ctx context.Context) string {
-	correlationId, _ := ctx.Value(request.RequestIdKey).(string)
-	if correlationId == "" {
-		correlationId, _ = ctx.Value("request-id").(string)
+	requestID := ctx.Value(request.RequestIdKey)
+	if requestID == nil {
+		requestID = ctx.Value("request-id")
 	}
 
-	return correlationId
+	correlationID, ok := requestID.(string)
+	if !ok {
+		return ""
+	}
+
+	return correlationID
 }
 
 // handleStyleError handles any errors from JSON marshalling in one of the styler functions
