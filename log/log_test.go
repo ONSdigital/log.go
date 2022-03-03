@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/dp-net/v2/request"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
