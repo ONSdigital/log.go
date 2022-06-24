@@ -2,6 +2,8 @@ module github.com/ONSdigital/log.go/v2
 
 go 1.18
 
+replace golang.org/x/text => golang.org/x/text v0.3.7
+
 require (
 	github.com/ONSdigital/dp-net/v2 v2.5.0-beta
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
