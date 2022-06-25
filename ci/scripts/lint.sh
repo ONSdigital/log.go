@@ -2,8 +2,11 @@
 
 cwd=$(pwd)
 
-pushd $cwd/log.go
 # Install golangci-lint
-  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
+  lint_ver=1.46.2
+  curl --location --no-progress-meter https://github.com/golangci/golangci-lint/releases/download/v$lint_ver/golangci-lint-$lint_ver-linux-amd64.tar.gz | tar zxvf -
+  PATH=$PATH:$cwd/golangci-lint-$lint_ver-linux-amd64
+
+pushd $cwd/log.go
   make lint
 popd
