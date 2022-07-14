@@ -3,7 +3,7 @@ module github.com/ONSdigital/log.go/v2
 go 1.17
 
 require (
-	github.com/ONSdigital/dp-net/v2 v2.0.0
+	github.com/ONSdigital/dp-net/v2 v2.4.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/smartystreets/goconvey v1.7.2
 )
