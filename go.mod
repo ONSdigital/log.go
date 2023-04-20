@@ -3,13 +3,13 @@ module github.com/ONSdigital/log.go/v2
 go 1.19
 
 require (
-	github.com/ONSdigital/dp-net/v2 v2.9.0
+	github.com/ONSdigital/dp-net/v2 v2.9.1
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/smartystreets/goconvey v1.8.0
 )
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.251.1-0.20230419122538-59e333f2e3ce // indirect
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect

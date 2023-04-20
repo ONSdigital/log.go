@@ -1,7 +1,7 @@
-github.com/ONSdigital/dp-api-clients-go/v2 v2.251.1-0.20230419122538-59e333f2e3ce h1:Q7bqxIJ1IJ5xY6iNT5BsBV3TmNvsyGW9knDoKEPg0xk=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.251.1-0.20230419122538-59e333f2e3ce/go.mod h1:yyY4HQjvDuwlNTycBU+usyxlSC+gPcSQW+B23ilBRvM=
-github.com/ONSdigital/dp-net/v2 v2.9.0 h1:tl9Onw0akxSh8ukhZyH0emQALQipIeul1NZlYi1fjbc=
-github.com/ONSdigital/dp-net/v2 v2.9.0/go.mod h1:gJUSRWOsXPXI23WgkQzuvFmLifHLMogunzt+9CL/KC8=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0 h1:lV+ENoQURWYx1BqAaRhiGV/yT+pcec2g9xZXTB1snPk=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0/go.mod h1:p49IHBmIH5fbAHJ1PrqGbtoHS45jfkYQZeRuIB+CgPQ=
+github.com/ONSdigital/dp-net/v2 v2.9.1 h1:2hGa0ArL0m2pMT9cFxMPcSOgvJ0zstH3NxWeykU9Elg=
+github.com/ONSdigital/dp-net/v2 v2.9.1/go.mod h1:iy1XmnqC7aKwHCpbTDhfAVrlYDGJGkZl36zeXyHq+Hw=
 github.com/fatih/color v1.15.0 h1:kOqh6YHBtK8aywxGerMG2Eq3H6Qgoqeo13Bk2Mv/nBs=
 github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBDUSsw=
 github.com/gopherjs/gopherjs v1.17.2 h1:fQnZVsXk8uxXIStYb0N4bGk7jeyTalG/wsZjQ25dO0g=
