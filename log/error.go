@@ -38,7 +38,7 @@ func (l *EventErrors) attach(le *EventData) {
 // FormatErrors returns an option you can pass to Event to attach
 // error information to a log event
 //
-// It uses error.Error() to stringify the error value
+// # It uses error.Error() to stringify the error value
 //
 // It also includes the error type itself as unstructured log
 // data. For a struct{} type, it is included directly. For all

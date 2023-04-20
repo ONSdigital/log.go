@@ -8,9 +8,10 @@ package log
 // isn't easily indexable.
 //
 // You can also create nested log data, for example:
-//     Data {
-//          "key": Data{},
-//     }
+//
+//	Data {
+//	     "key": Data{},
+//	}
 type Data map[string]interface{}
 
 func (d Data) attach(le *EventData) {

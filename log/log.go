@@ -43,9 +43,12 @@ var styleForMachineFunc = &styleFunc{styleForMachine}
 //
 // An event string should be static strings which do not use
 // concatenation or Sprintf, e.g.
-//     "connecting to database"
+//
+//	"connecting to database"
+//
 // rather than
-//     "connecting to database: " + databaseURL
+//
+//	"connecting to database: " + databaseURL
 //
 // Additional data should be stored using Data{}
 //
@@ -53,7 +56,7 @@ var styleForMachineFunc = &styleFunc{styleForMachine}
 // data, for example using the HTTP, Auth, Severity, Data and Error
 // functions.
 //
-//     log.Event(nil, "connecting to database", log.Data{"url": databaseURL})
+//	log.Event(nil, "connecting to database", log.Data{"url": databaseURL})
 //
 // If HUMAN_LOG environment variable is set to a true value (true, TRUE, 1)
 // the log output will be syntax highlighted pretty printed JSON. Otherwise,
@@ -62,15 +65,14 @@ var styleForMachineFunc = &styleFunc{styleForMachine}
 // When running tests, Event will panic if the same option is passed
 // in multiple times, for example:
 //
-//     log.Event(nil, "event", log.Data{}, log.Data{})
+//	log.Event(nil, "event", log.Data{}, log.Data{})
 //
 // It doesn't panic in normal usage because checking for duplicate entries
 // is expensive. Where this happens, options to the right take precedence,
 // for example:
 //
-//     log.Event(nil, "event", log.Data{"a": 1}, log.Data{"a": 2})
-//     // data.a = 2
-//
+//	log.Event(nil, "event", log.Data{"a": 1}, log.Data{"a": 2})
+//	// data.a = 2
 func Event(ctx context.Context, event string, severity severity, opts ...option) {
 	eventFuncInst.f(ctx, event, severity, opts...)
 }
