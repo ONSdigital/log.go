@@ -30,8 +30,15 @@ func Middleware(f http.Handler) http.Handler {
 
 		rc := &responseCapture{w, nil, 0}
 		start := time.Now().UTC()
-		Event(req.Context(), "http request received", INFO, HTTP(req, 0, 0, &start, nil))
-
+		if isMinimalAllocations == false {
+			Event(req.Context(), "http request received", INFO, HTTP(req, 0, 0, &start, nil))
+		} else {
+			//IntermediaryEvent1(req.Context(), "http request received", HTTP(req, 0, 0, &start, nil))
+			CustomLogEvent1(req.Context(), "http request received",
+				//!!! process new 'INFO,' parameter here in custom function
+				req, 0, 0,
+				&start, nil)
+		}
 		defer func() {
 			end := time.Now().UTC()
 
@@ -40,7 +47,16 @@ func Middleware(f http.Handler) http.Handler {
 				statusCode = *rc.statusCode
 			}
 
-			Event(req.Context(), "http request completed", INFO, HTTP(req, statusCode, rc.bytesWritten, &start, &end))
+			if isMinimalAllocations == false {
+				Event(req.Context(), "http request completed", INFO, HTTP(req, statusCode, rc.bytesWritten, &start, &end))
+			} else {
+				// NOTE: &start is not passed as part of the savings
+				//IntermediaryEvent3(req.Context(), "http request completed", HTTP(req, statusCode, rc.bytesWritten, nil, &end))
+				CustomLogEvent3(req.Context(), "http request completed",
+					//!!! process new 'INFO,' parameter here in custom function
+					req, statusCode, rc.bytesWritten,
+					nil, &end)
+			}
 		}()
 
 		f.ServeHTTP(rc, req)

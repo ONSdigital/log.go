@@ -29,6 +29,7 @@ var fallbackDestinationMutex sync.Mutex
 var fallbackDestination io.Writer = os.Stderr
 
 var isTestMode bool
+var isMinimalAllocations bool
 
 var eventWithOptionsCheckFunc = &eventFunc{eventWithOptionsCheck}
 var eventWithoutOptionsCheckFunc = &eventFunc{eventWithoutOptionsCheck}
@@ -108,6 +109,14 @@ func Fatal(ctx context.Context, event string, err error, opts ...option) {
 }
 
 func initEvent() *eventFunc {
+
+	if flag.Lookup("minimumAllocs") != nil {
+		isMinimalAllocations = true
+	}
+	if b, _ := strconv.ParseBool(os.Getenv("MINIMUM_ALLOC")); b {
+		isMinimalAllocations = true
+	}
+
 	// If we're in test mode, replace the Event function with one
 	// that has additional checks to find repeated event option types
 	//
@@ -128,6 +137,7 @@ func initEvent() *eventFunc {
 
 var styler = initStyler()
 
+// this is called before main()
 func initStyler() *styleFunc {
 	// If HUMAN_LOG is enabled, replace the default styler with a
 	// human readable styler
@@ -181,6 +191,26 @@ type EventData struct {
 	Errors *EventErrors `json:"errors,omitempty"`
 }
 
+// EventData2 - this version of 'EventData' has "SpanID" removed to reduce memory allocation in the HOT-PATH
+type EventData2 struct {
+	// Required fields
+	CreatedAt time.Time `json:"created_at"`
+	Namespace string    `json:"namespace"`
+	Event     string    `json:"event"`
+
+	// Optional fields
+	TraceID  string    `json:"trace_id,omitempty"`
+	Severity *severity `json:"severity,omitempty"`
+
+	// Optional nested data
+	HTTP *EventHTTP `json:"http,omitempty"`
+	Auth *eventAuth `json:"auth,omitempty"`
+	Data *Data      `json:"data,omitempty"`
+
+	// Error data
+	Error *EventError `json:"error,omitempty"`
+}
+
 // eventWithOptionsCheck is the event function used when running tests, and
 // will panic if the same log option is passed in multiple times
 //
@@ -189,6 +219,10 @@ func eventWithOptionsCheck(ctx context.Context, event string, severity severity,
 	var optMap = make(map[string]struct{})
 	for _, o := range opts {
 		t := reflect.TypeOf(o)
+		if t.Kind() == reflect.Ptr { // this needed to test calls from Event()
+			t = t.Elem()
+		}
+
 		p := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
 		if p == "github.com/ONSdigital/log.go/v2/log.severity" {
 			panic("can't pass severity as a parameter")
@@ -292,6 +326,7 @@ func printEvent(b []byte) {
 		return
 	}
 
+	// b = append(b, 55) // used to break test, just to check that test is working
 	// try and write to stdout
 	destinationMutex.Lock()
 	defer destinationMutex.Unlock()
