@@ -6,6 +6,7 @@ require (
 	github.com/ONSdigital/dp-net/v2 v2.9.1
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/smartystreets/goconvey v1.8.0
+	go.opentelemetry.io/otel/trace v1.20.0
 )
 
 require (
@@ -16,5 +17,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/smartystreets/assertions v1.13.1 // indirect
+	go.opentelemetry.io/otel v1.20.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 )
