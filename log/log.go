@@ -15,6 +15,7 @@ import (
 
 	"github.com/ONSdigital/dp-net/v2/request"
 	"github.com/hokaccha/go-prettyjson"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Namespace is the log namespace included with every log event.
@@ -219,6 +220,11 @@ func createEvent(ctx context.Context, event string, severity severity, opts ...o
 
 	if ctx != nil {
 		e.TraceID = getRequestId(ctx)
+	}
+
+	otelTraceId := trace.SpanFromContext(ctx).SpanContext().TraceID()
+	if (otelTraceId.IsValid()) {
+		e.TraceID = otelTraceId.String();
 	}
 
 	// loop around each log option and call its attach method, which takes care

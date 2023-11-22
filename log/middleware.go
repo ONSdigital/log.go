@@ -6,6 +6,9 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // Middleware implements the logger middleware and captures HTTP request data
@@ -30,7 +33,12 @@ func Middleware(f http.Handler) http.Handler {
 
 		rc := &responseCapture{w, nil, 0}
 		start := time.Now().UTC()
-		Event(req.Context(), "http request received", INFO, HTTP(req, 0, 0, &start, nil))
+
+		octx := otel.GetTextMapPropagator().Extract(
+			req.Context(), propagation.HeaderCarrier(req.Header),
+		)
+
+		Event(octx, "http request received", INFO, HTTP(req, 0, 0, &start, nil))
 
 		defer func() {
 			end := time.Now().UTC()
@@ -40,7 +48,7 @@ func Middleware(f http.Handler) http.Handler {
 				statusCode = *rc.statusCode
 			}
 
-			Event(req.Context(), "http request completed", INFO, HTTP(req, statusCode, rc.bytesWritten, &start, &end))
+			Event(octx, "http request completed", INFO, HTTP(req, statusCode, rc.bytesWritten, &start, &end))
 		}()
 
 		f.ServeHTTP(rc, req)
