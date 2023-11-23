@@ -223,8 +223,8 @@ func createEvent(ctx context.Context, event string, severity severity, opts ...o
 	}
 
 	otelTraceId := trace.SpanFromContext(ctx).SpanContext().TraceID()
-	if (otelTraceId.IsValid()) {
-		e.TraceID = otelTraceId.String();
+	if otelTraceId.IsValid() {
+		e.TraceID = otelTraceId.String()
 	}
 
 	// loop around each log option and call its attach method, which takes care
