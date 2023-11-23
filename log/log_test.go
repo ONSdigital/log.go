@@ -217,7 +217,7 @@ func TestLog(t *testing.T) {
 
 		eventWithOptionsCheck(ctx, "test event", INFO, Data{"value": 1})
 		So(called, ShouldBeTrue)
-		So(c, ShouldEqual, ctx)
+		So(c, ShouldResemble, ctx)
 		So(e, ShouldEqual, "test event")
 		So(o, ShouldHaveLength, 1)
 		So(o[0], ShouldHaveSameTypeAs, Data{})
@@ -374,7 +374,7 @@ func TestLog(t *testing.T) {
 			So(called, ShouldBeTrue)
 			So(b2, ShouldBeEmpty)
 
-			So(calledCtx, ShouldEqual, ctx)
+			So(calledCtx, ShouldResemble, ctx)
 			So(calledEvent, ShouldEqual, "error marshalling event data")
 			So(calledOpts, ShouldHaveLength, 2)
 			So(calledSeverity, ShouldEqual, 1)

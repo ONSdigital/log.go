@@ -157,7 +157,7 @@ func TestMiddleware(t *testing.T) {
 			Convey("Start event is logged", func() {
 				So(events[0].hasBeenCalled, ShouldBeTrue)
 				So(events[0].capEvent, ShouldEqual, "http request received")
-				So(events[0].capCtx, ShouldEqual, ctx)
+				So(events[0].capCtx, ShouldResemble, ctx)
 				So(events[0].capOpts, ShouldHaveLength, 1)
 				So(events[0].capOpts[0], ShouldImplement, (*option)(nil))
 				So(events[0].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
@@ -183,7 +183,7 @@ func TestMiddleware(t *testing.T) {
 			Convey("End event is logged", func() {
 				So(events[1].hasBeenCalled, ShouldBeTrue)
 				So(events[1].capEvent, ShouldEqual, "http request completed")
-				So(events[1].capCtx, ShouldEqual, ctx)
+				So(events[1].capCtx, ShouldResemble, ctx)
 				So(events[1].capOpts, ShouldHaveLength, 1)
 				So(events[1].capOpts[0], ShouldImplement, (*option)(nil))
 				So(events[1].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
