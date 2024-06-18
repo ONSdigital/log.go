@@ -394,7 +394,7 @@ func BenchmarkLog7(b *testing.B) {
 
 		var duration *time.Duration
 
-		// inline the the setting up of the "EventHTTP" to save doing the HTTP(...)
+		// Inline the the setting up of the "EventHTTP" to save doing the HTTP(...)
 		// thing as this escapes to the heap, whereas doing the following stays within
 		// the stack of this calling function.
 		e := EventHTTP{
