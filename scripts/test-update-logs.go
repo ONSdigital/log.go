@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/ONSdigital/log.go/v3/log"
 )
 
 func main() {

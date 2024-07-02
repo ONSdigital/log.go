@@ -1,115 +1,226 @@
-package log
+package log_test
 
 import (
 	"errors"
-	"strconv"
+	"fmt"
+	"github.com/ONSdigital/log.go/v3/log"
+	pkgerrors "github.com/pkg/errors"
+	"golang.org/x/xerrors"
+	"runtime"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type customIntError int
+func TestFormatAsErrors(t *testing.T) {
+	Convey("with a number of predefined errors", t, func() {
 
-func (c customIntError) Error() string {
-	return strconv.Itoa(int(c))
-}
+		// line number of here used as datum for generated stack traces
+		pc, datumFile, datumline, _ := runtime.Caller(0)
+		datumFunc := runtime.FuncForPC(pc).Name()
 
-func TestFormatErrorsFunc(t *testing.T) {
-	t.Parallel()
+		// basic go errors
+		berr := errors.New("basic error")
+		bwerr := fmt.Errorf("basic wrapped error [%w]", berr)
+		bw2err := fmt.Errorf("double wrapped error [%w]", bwerr)
 
-	// Keep this test function at top of test to help prevent the test failing. This is due to the test
-	// assertion to check the line number of the stacktrace which is defined when calling FormatErrors func.
-	Convey("Check error event data generates a stack trace", t, func() {
-		err := errors.New("new error")
+		// pkg/errors
+		perr := pkgerrors.New("pkg error")
+		pwerr := pkgerrors.Wrap(perr, "pkg wrapped error")
+		pw2err := pkgerrors.Wrap(pwerr, "double pkg wrapped error")
 
-		// WARNING if this line moves, update `So(origin.Line, ...)` below
-		errEventData := FormatErrors([]error{err}).(*EventErrors)
-		So((*errEventData)[0].StackTrace, ShouldHaveLength, 10)
+		// golang.org/x/xerror
+		xerr := xerrors.New("x error")
+		xwerr := xerrors.Errorf("x wrapped %w", xerr)
+		xw2err := xerrors.Errorf("x double wrapped %w", xwerr)
 
-		origin := (*errEventData)[0].StackTrace[0]
-		So(origin.File, ShouldEndWith, "log.go/log/error_test.go")
+		// Mixed errors
+		pb := pkgerrors.Wrap(berr, "pkg wrapped")
+		xb := xerrors.Errorf("x wrapped %w", berr)
+		xpb := xerrors.Errorf("x wrapped %w", pb)
+		pxb := pkgerrors.Wrap(xb, "pkg wrapped")
 
-		// If this test fails, check the `errEventData := Error(err).(*EventErrors)` line is still line 26 of the this test file!
-		So(origin.Line, ShouldEqual, 26)
-		So(origin.Function, ShouldEqual, "github.com/ONSdigital/log.go/v2/log.TestFormatErrorsFunc.func1")
-	})
+		Convey("basic errors generate no stacktrace", func() {
+			errors := log.FormatAsErrors(berr)
+			So(errors, ShouldHaveLength, 1)
+			So(errors[0].Message, ShouldEqual, berr.Error())
 
-	Convey("Check *EventErrors is returned and implements the option interface", t, func() {
-		err := FormatErrors([]error{errors.New("test")})
-		So(err, ShouldHaveSameTypeAs, &EventErrors{})
-		So(err, ShouldImplement, (*option)(nil))
+			errors = log.FormatAsErrors(bwerr)
+			So(errors, ShouldHaveLength, 2)
+			So(errors[0].Message, ShouldEqual, bwerr.Error())
+			So(errors[1].Message, ShouldEqual, berr.Error())
 
-		Convey("Check *EventErrors contains the expected fields", func() {
-			myErr := []error{errors.New("test")}
-
-			errEventData := FormatErrors(myErr).(*EventErrors)
-			So((*errEventData)[0].Message, ShouldEqual, myErr[0].Error())
-			So((*errEventData)[0].Data, ShouldBeNil)
-			So((*errEventData)[0].StackTrace, ShouldHaveLength, 10)
-		})
-	})
-
-	Convey("Check *EventErrors can be attached to *EventData", t, func() {
-		event := &EventData{}
-		So(event.Data, ShouldBeNil)
-
-		err := EventErrors{}
-		err.attach(event)
-
-		So(event.Errors, ShouldResemble, &err)
-	})
-
-	Convey("Check event error Data is set to error", t, func() {
-		Convey("For a value of kind 'Struct' is embedded directly via a custom error", func() {
-			err := &CustomError{Message: "goodbye"}
-
-			errEventData := FormatErrors([]error{err}).(*EventErrors)
-			So((*errEventData)[0].Data, ShouldBeNil)
-			So((*errEventData)[0].Message, ShouldEqual, "goodbye")
+			errors = log.FormatAsErrors(bw2err)
+			So(errors, ShouldHaveLength, 3)
+			So(errors[0].Message, ShouldEqual, bw2err.Error())
+			So(errors[1].Message, ShouldEqual, bwerr.Error())
+			So(errors[2].Message, ShouldEqual, berr.Error())
 		})
 
-		Convey("For a value of kind 'Ptr->Struct' is embedded directly", func() {
-			err := &CustomError{
-				Message: "new error",
-				Data:    map[string]interface{}{"new_data_variable": "546"},
-			}
-			errEventData := FormatErrors([]error{err}).(*EventErrors)
-			So((*errEventData)[0].Message, ShouldEqual, "new error")
-			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, err.Data)
-			So((*errEventData)[0].Data, ShouldEqual, err.Data)
+		Convey("pkg errors generate appropriate stacktrace", func() {
+			errors := log.FormatAsErrors(perr)
+			So(errors, ShouldHaveLength, 1)
+			So(errors[0].Message, ShouldEqual, perr.Error())
+			So(len(errors[0].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+9)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			errors = log.FormatAsErrors(pwerr)
+			// pkg wraps errors weirdly so there is double wrapping with stack-traced and non-stack-traced errors
+			So(errors, ShouldHaveLength, 3)
+			So(errors[0].Message, ShouldEqual, pwerr.Error())
+			So(len(errors[0].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+10)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+			So(errors[1].Message, ShouldEqual, pwerr.Error())
+			So(errors[1].StackTrace, ShouldHaveLength, 0)
+			So(errors[2].Message, ShouldEqual, perr.Error())
+			So(len(errors[2].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[2].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[2].StackTrace[0].Line, ShouldEqual, datumline+9)
+			So(errors[2].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			errors = log.FormatAsErrors(pw2err)
+			// pkg wraps errors weirdly so there is double wrapping with stack-traced and non-stack-traced errors
+			So(errors, ShouldHaveLength, 5)
+
+			So(errors[0].Message, ShouldEqual, pw2err.Error())
+			So(len(errors[0].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+11)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			So(errors[1].Message, ShouldEqual, pw2err.Error())
+			So(errors[1].StackTrace, ShouldHaveLength, 0)
+
+			So(errors[2].Message, ShouldEqual, pwerr.Error())
+			So(len(errors[2].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[2].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[2].StackTrace[0].Line, ShouldEqual, datumline+10)
+			So(errors[2].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			So(errors[3].Message, ShouldEqual, pwerr.Error())
+			So(errors[3].StackTrace, ShouldHaveLength, 0)
+
+			So(errors[4].Message, ShouldEqual, perr.Error())
+			So(len(errors[4].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[4].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[4].StackTrace[0].Line, ShouldEqual, datumline+9)
+			So(errors[4].StackTrace[0].Function, ShouldEqual, datumFunc)
 		})
 
-		Convey("For a value of other kinds (e.g. 'Int') is wrapped in Data{value:<err>}", func() {
-			err := customIntError(0)
-			errEventData := FormatErrors([]error{err}).(*EventErrors)
-			So((*errEventData)[0].Data, ShouldHaveSameTypeAs, Data{})
-			So((*errEventData)[0].Data.(Data)["value"], ShouldEqual, err)
-			So((*errEventData)[0].Message, ShouldEqual, "0")
+		Convey("golang xerrors generate appropriate stacktrace", func() {
+			errors := log.FormatAsErrors(xerr)
+			So(errors, ShouldHaveLength, 1)
+			So(errors[0].Message, ShouldEqual, xerr.Error())
+			// xerrror stack traces are only 1 level deep
+			So(errors[0].StackTrace, ShouldHaveLength, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+14)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			errors = log.FormatAsErrors(xwerr)
+			So(errors, ShouldHaveLength, 2)
+			So(errors[0].Message, ShouldEqual, xwerr.Error())
+			So(errors[0].StackTrace, ShouldHaveLength, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+15)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+			So(errors[1].Message, ShouldEqual, xerr.Error())
+			So(errors[1].StackTrace, ShouldHaveLength, 1)
+			So(errors[1].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[1].StackTrace[0].Line, ShouldEqual, datumline+14)
+			So(errors[1].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			errors = log.FormatAsErrors(xw2err)
+			So(errors, ShouldHaveLength, 3)
+			So(errors[0].Message, ShouldEqual, xw2err.Error())
+			So(errors[0].StackTrace, ShouldHaveLength, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+16)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+			So(errors[1].Message, ShouldEqual, xwerr.Error())
+			So(errors[1].StackTrace, ShouldHaveLength, 1)
+			So(errors[1].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[1].StackTrace[0].Line, ShouldEqual, datumline+15)
+			So(errors[1].StackTrace[0].Function, ShouldEqual, datumFunc)
+			So(errors[2].Message, ShouldEqual, xerr.Error())
+			So(errors[2].StackTrace, ShouldHaveLength, 1)
+			So(errors[2].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[2].StackTrace[0].Line, ShouldEqual, datumline+14)
+			So(errors[2].StackTrace[0].Function, ShouldEqual, datumFunc)
 		})
-	})
 
-	Convey("Check first two items in *EventErrors and contains the expected error event data", t, func() {
-		err1 := errors.New("test error")
-		err2 := &CustomError{
-			Message: "hidden error",
-			Data:    map[string]interface{}{"count": 12},
-		}
+		Convey("mixed errors generate appropriate stacktrace", func() {
+			errors := log.FormatAsErrors(pb)
+			So(errors, ShouldHaveLength, 3)
+			So(errors[0].Message, ShouldEqual, pb.Error())
+			So(len(errors[0].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+19)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+			So(errors[1].Message, ShouldEqual, pb.Error())
+			So(errors[1].StackTrace, ShouldHaveLength, 0)
+			So(errors[2].Message, ShouldEqual, berr.Error())
+			So(errors[2].StackTrace, ShouldHaveLength, 0)
 
-		errEventData := FormatErrors([]error{err1, err2}).(*EventErrors)
-		So(errEventData, ShouldHaveLength, 2)
+			errors = log.FormatAsErrors(xb)
+			// pkg wraps errors weirdly so there is double wrapping with stack-traced and non-stack-traced errors
+			So(errors, ShouldHaveLength, 2)
+			So(errors[0].Message, ShouldEqual, xb.Error())
+			So(errors[0].StackTrace, ShouldHaveLength, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+20)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+			So(errors[1].Message, ShouldEqual, berr.Error())
+			So(errors[1].StackTrace, ShouldHaveLength, 0)
 
-		// First item in error event data
-		So((*errEventData)[0].Data, ShouldBeNil)
-		So((*errEventData)[0].Message, ShouldEqual, err1.Error())
+			errors = log.FormatAsErrors(xpb)
+			// pkg wraps errors weirdly so there is double wrapping with stack-traced and non-stack-traced errors
+			So(errors, ShouldHaveLength, 4)
 
-		// Second item in error event data
-		So((*errEventData)[1].Data, ShouldHaveSameTypeAs, make(map[string]interface{}))
-		So((*errEventData)[1].Data, ShouldEqual, err2.Data)
-		So((*errEventData)[1].Message, ShouldEqual, err2.Message)
-	})
+			So(errors[0].Message, ShouldEqual, xpb.Error())
+			So(errors[0].StackTrace, ShouldHaveLength, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+21)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
 
-	Convey("If a nil value is passed into FormatErrors, check no error event data is returned", t, func() {
-		errEventData := FormatErrors([]error{nil}).(*EventErrors)
-		So(errEventData, ShouldHaveLength, 0)
+			So(errors[1].Message, ShouldEqual, pb.Error())
+			So(len(errors[1].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[1].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[1].StackTrace[0].Line, ShouldEqual, datumline+19)
+			So(errors[1].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			So(errors[2].Message, ShouldEqual, pb.Error())
+			So(errors[2].StackTrace, ShouldHaveLength, 0)
+
+			So(errors[3].Message, ShouldEqual, berr.Error())
+			So(errors[3].StackTrace, ShouldHaveLength, 0)
+
+			errors = log.FormatAsErrors(pxb)
+			// pkg wraps errors weirdly so there is double wrapping with stack-traced and non-stack-traced errors
+			So(errors, ShouldHaveLength, 4)
+
+			So(errors[0].Message, ShouldEqual, pxb.Error())
+			So(len(errors[0].StackTrace), ShouldBeGreaterThan, 1)
+			So(errors[0].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[0].StackTrace[0].Line, ShouldEqual, datumline+22)
+			So(errors[0].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			So(errors[1].Message, ShouldEqual, pxb.Error())
+			So(errors[1].StackTrace, ShouldHaveLength, 0)
+
+			So(errors[2].Message, ShouldEqual, xb.Error())
+			So(errors[2].StackTrace, ShouldHaveLength, 1)
+			So(errors[2].StackTrace[0].File, ShouldEqual, datumFile)
+			So(errors[2].StackTrace[0].Line, ShouldEqual, datumline+20)
+			So(errors[2].StackTrace[0].Function, ShouldEqual, datumFunc)
+
+			So(errors[3].Message, ShouldEqual, berr.Error())
+			So(errors[3].StackTrace, ShouldHaveLength, 0)
+
+		})
 	})
 }

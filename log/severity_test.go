@@ -1,6 +1,8 @@
 package log
 
 import (
+	"fmt"
+	"log/slog"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -28,5 +30,48 @@ func TestSeverity(t *testing.T) {
 		So(ERROR, ShouldEqual, 1)
 		So(WARN, ShouldEqual, 2)
 		So(INFO, ShouldEqual, 3)
+	})
+}
+
+func TestSeverityToLevel(t *testing.T) {
+	Convey("given a list of severities", t, func() {
+		cases := []struct {
+			src severity
+			exp slog.Level
+		}{
+			{INFO, slog.LevelInfo},
+			{FATAL, LevelFatal},
+			{ERROR, slog.LevelError},
+			{WARN, slog.LevelWarn},
+			{severity(99), slog.LevelInfo},
+		}
+
+		for _, tc := range cases {
+			Convey(fmt.Sprintf("SeverityToLevel(%v) should equal expected value", tc.src), func() {
+				So(SeverityToLevel(tc.src), ShouldEqual, tc.exp)
+			})
+		}
+	})
+}
+
+func TestLevelToSeverity(t *testing.T) {
+	Convey("given a list of log levels", t, func() {
+		cases := []struct {
+			src slog.Level
+			exp severity
+		}{
+			{slog.LevelInfo, INFO},
+			{LevelFatal, FATAL},
+			{slog.LevelError, ERROR},
+			{slog.LevelWarn, WARN},
+			{slog.LevelDebug, INFO},
+			{slog.Level(99), INFO},
+		}
+
+		for _, tc := range cases {
+			Convey(fmt.Sprintf("LevelToSeverity(%v) should equal expected value", tc.src), func() {
+				So(LevelToSeverity(tc.src), ShouldEqual, tc.exp)
+			})
+		}
 	})
 }

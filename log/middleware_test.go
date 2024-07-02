@@ -3,6 +3,7 @@ package log
 import (
 	"bufio"
 	"context"
+	"log/slog"
 	"net"
 	"net/http"
 	"testing"
@@ -97,14 +98,16 @@ func TestResponseCapture(t *testing.T) {
 }
 
 func TestMiddleware(t *testing.T) {
-	mock := &eventFuncMock{}
-	oldEvent := eventFuncInst
-	defer func() {
-		eventFuncInst = oldEvent
-	}()
-	eventFuncInst = &eventFunc{mock.Event}
+
+	// Return default logger after run
+	currentDefault := Default()
+	defer SetDefault(currentDefault)
 
 	Convey("Middleware wraps a http.Handler", t, func() {
+		mockHndlr := mockHandler{}
+		logger := slog.New(&mockHndlr)
+		SetDefault(logger)
+
 		var handlerWasCalled bool
 
 		h := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -115,17 +118,19 @@ func TestMiddleware(t *testing.T) {
 		So(m, ShouldHaveSameTypeAs, h)
 
 		Convey("Middleware logs an event on nil request", func() {
-			So(mock.hasBeenCalled, ShouldBeFalse)
-			var efm eventFuncMock
-			mock.onEvent = func(e eventFuncMock) {
-				efm = e
-			}
+			mockHndlr.Reset()
+
 			m.ServeHTTP(nil, nil)
-			So(efm.hasBeenCalled, ShouldBeTrue)
-			So(efm.capEvent, ShouldEqual, "nil request in middleware handler")
-			So(efm.capOpts, ShouldHaveLength, 1)
-			So(efm.capOpts[0], ShouldHaveSameTypeAs, Data{})
-			So(efm.severity, ShouldEqual, 3)
+
+			So(mockHndlr.handeRecords, ShouldHaveLength, 1)
+			record := mockHndlr.handeRecords[0]
+			So(record.Message, ShouldResemble, "nil request in middleware handler")
+			So(record.Level, ShouldEqual, LevelInfo)
+			sevAttr := getAttrFromRecord(&record, "severity")
+			So(sevAttr.Value.Int64(), ShouldEqual, INFO)
+			dataAttr := getAttrFromRecord(&record, "data")
+			So(dataAttr, ShouldNotBeNil)
+			So(dataAttr.Value.Any(), ShouldHaveSameTypeAs, Data{})
 		})
 
 		Convey("Inner handler is called by middleware", func() {
@@ -138,12 +143,7 @@ func TestMiddleware(t *testing.T) {
 		})
 
 		Convey("Start and end events are logged", func() {
-			events := make([]eventFuncMock, 0)
-			mock.onEvent = func(e eventFuncMock) {
-				events = append(events, e)
-			}
-
-			So(events, ShouldHaveLength, 0)
+			mockHndlr.Reset()
 
 			req, err := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", nil)
 			So(err, ShouldBeNil)
@@ -152,16 +152,20 @@ func TestMiddleware(t *testing.T) {
 			So(req, ShouldNotBeNil)
 			m.ServeHTTP(&responseWriter{}, req)
 
-			So(events, ShouldHaveLength, 2)
+			So(mockHndlr.handeRecords, ShouldHaveLength, 2)
 
 			Convey("Start event is logged", func() {
-				So(events[0].hasBeenCalled, ShouldBeTrue)
-				So(events[0].capEvent, ShouldEqual, "http request received")
-				So(events[0].capCtx, ShouldResemble, ctx)
-				So(events[0].capOpts, ShouldHaveLength, 1)
-				So(events[0].capOpts[0], ShouldImplement, (*option)(nil))
-				So(events[0].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
-				eventHTTP := events[0].capOpts[0].(*EventHTTP)
+				record := mockHndlr.handeRecords[0]
+				So(record.Message, ShouldResemble, "http request received")
+				So(record.Level, ShouldEqual, LevelInfo)
+				sevAttr := getAttrFromRecord(&record, "severity")
+				So(sevAttr.Value.Int64(), ShouldEqual, INFO)
+
+				httpAttr := getAttrFromRecord(&record, "http")
+				So(httpAttr, ShouldNotBeNil)
+				httpAny := httpAttr.Value.Any()
+				So(httpAny, ShouldHaveSameTypeAs, EventHTTP{})
+				eventHTTP := httpAny.(EventHTTP)
 
 				So(eventHTTP.StatusCode, ShouldNotBeNil)
 				So(*eventHTTP.StatusCode, ShouldEqual, 0)
@@ -181,13 +185,17 @@ func TestMiddleware(t *testing.T) {
 			})
 
 			Convey("End event is logged", func() {
-				So(events[1].hasBeenCalled, ShouldBeTrue)
-				So(events[1].capEvent, ShouldEqual, "http request completed")
-				So(events[1].capCtx, ShouldResemble, ctx)
-				So(events[1].capOpts, ShouldHaveLength, 1)
-				So(events[1].capOpts[0], ShouldImplement, (*option)(nil))
-				So(events[1].capOpts[0], ShouldHaveSameTypeAs, &EventHTTP{})
-				eventHTTP := events[1].capOpts[0].(*EventHTTP)
+				record := mockHndlr.handeRecords[1]
+				So(record.Message, ShouldResemble, "http request completed")
+				So(record.Level, ShouldEqual, LevelInfo)
+				sevAttr := getAttrFromRecord(&record, "severity")
+				So(sevAttr.Value.Int64(), ShouldEqual, INFO)
+
+				httpAttr := getAttrFromRecord(&record, "http")
+				So(httpAttr, ShouldNotBeNil)
+				httpAny := httpAttr.Value.Any()
+				So(httpAny, ShouldHaveSameTypeAs, EventHTTP{})
+				eventHTTP := httpAny.(EventHTTP)
 
 				So(eventHTTP.StatusCode, ShouldNotBeNil)
 				So(*eventHTTP.StatusCode, ShouldEqual, 200)

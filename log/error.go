@@ -1,8 +1,11 @@
 package log
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
-	"runtime"
+	"strconv"
+	"strings"
 )
 
 // EventErrors is an array of error events
@@ -31,94 +34,83 @@ type EventStackTrace struct {
 	Function string `json:"function,omitempty"`
 }
 
-func (l *EventErrors) attach(le *EventData) {
-	le.Errors = l
-}
+// FormatAsErrors takes an error and unwraps and wrapped errors and returns this as a slice. If any of the wrapped
+// errors also contain a stack trace, this will also be extracted.
+// Currently, stack traces provided by the following errors packages are supported...
+// - golang.org/x/xerrors
+// - github.com/pkg/errors
+func FormatAsErrors(err error) []EventError {
+	evtErrs := make([]EventError, 0, 4)
 
-// FormatErrors returns an option you can pass to Event to attach
-// error information to a log event
-//
-// # It uses error.Error() to stringify the error value
-//
-// It also includes the error type itself as unstructured log
-// data. For a struct{} type, it is included directly. For all
-// other types, it is wrapped in a Data{} struct
-//
-// It also includes a full stack trace to where FormatErrors() is called,
-// so you shouldn't normally store a log.Error for reuse (e.g. as a
-// package level variable)
-func FormatErrors(errs []error) option {
-
-	var e []EventError
-
-	for i := range errs {
-		if errs[i] == nil {
-			continue
-		}
-
-		err := EventError{
-			Message:    errs[i].Error(),
-			StackTrace: make([]EventStackTrace, 0),
-		}
-
-		k := reflect.Indirect(reflect.ValueOf(errs[i])).Type().Kind()
-		switch k {
-		case reflect.Struct:
-
-			// check error types
-			switch newErr := errs[i].(type) {
-			case *CustomError: // matched CustomError type
-				err.Data = newErr.ErrorData()
-			case error:
-				// catch everything else
-			}
-
-		default:
-			// we have something else, so nest it inside a Data value
-			err.Data = Data{"value": errs[i]}
-		}
-
-		pc := make([]uintptr, 10)
-		n := runtime.Callers(2, pc)
-		if n > 0 {
-			frames := runtime.CallersFrames(pc[:n])
-
-			for {
-				frame, more := frames.Next()
-
-				err.StackTrace = append(err.StackTrace, EventStackTrace{
-					File:     frame.File,
-					Line:     frame.Line,
-					Function: frame.Function,
-				})
-
-				if !more {
-					break
-				}
-			}
-		}
-
-		e = append(e, err)
+	for wrappedErr := err; wrappedErr != nil; wrappedErr = errors.Unwrap(wrappedErr) {
+		evtErrs = append(evtErrs, EventError{
+			Message:    wrappedErr.Error(),
+			StackTrace: extractStacktrace(wrappedErr),
+		})
 	}
 
-	a := EventErrors(e)
-
-	return &a
+	return evtErrs
 }
 
-// CustomError defines an error object that abides to the error type
-// with the extension of including data field
-type CustomError struct {
-	Message string                 `json:"message"`
-	Data    map[string]interface{} `json:"data"`
+func extractStacktrace(err error) []EventStackTrace {
+	st := make([]EventStackTrace, 0)
+
+	pkg := reflect.Indirect(reflect.ValueOf(err)).Type().PkgPath()
+	switch pkg {
+	case "golang.org/x/xerrors":
+		st = extractXErrStacktrace(err)
+	case "github.com/pkg/errors":
+		st = extractPkgErrStacktrace(err)
+	}
+
+	return st
 }
 
-// Error returns the custom error message embedded in CustomError
-func (c *CustomError) Error() string {
-	return c.Message
+func extractXErrStacktrace(xerr error) []EventStackTrace {
+	errstr := fmt.Sprintf("%+v", xerr)
+	lines := strings.Split(errstr, "\n")
+	function := strings.Trim(lines[1], " ")
+	caller := strings.Split(strings.Trim(lines[2], " "), ":")
+	file := caller[0]
+	lineNum, _ := strconv.Atoi(caller[1])
+
+	return []EventStackTrace{EventStackTrace{
+		File:     file,
+		Line:     lineNum,
+		Function: function,
+	}}
 }
 
-// ErrorData returns the custom error data embedded in CustomError
-func (c CustomError) ErrorData() map[string]interface{} {
-	return c.Data
+func extractPkgErrStacktrace(pkgerr error) []EventStackTrace {
+	st := []EventStackTrace{}
+
+	errstr := fmt.Sprintf("%+v", pkgerr)
+	lines := strings.Split(errstr, "\n")
+
+	ststart := len(lines)
+	if ststart < 2 {
+		return st
+	}
+	for i := ststart - 1; lines[i][0] == '\t'; i = i - 2 {
+		ststart = i - 1
+	}
+	stLines := lines[ststart:]
+
+	for i := 0; i < len(stLines); i = i + 2 {
+		function := strings.Trim(stLines[i], " ")
+		caller := strings.Split(strings.Trim(stLines[i+1], "\t "), ":")
+		file := caller[0]
+		lineNum, _ := strconv.Atoi(caller[1])
+
+		st = append(st, EventStackTrace{
+			File:     file,
+			Line:     lineNum,
+			Function: function,
+		})
+	}
+	return st
+}
+
+func (l *EventErrors) attach(le *EventData) {
+	le.Errors = l
 }

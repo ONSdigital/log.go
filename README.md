@@ -142,54 +142,7 @@ log.Error(context.Background(), "unexpected error", err, log.Data{
   "severity": 1
 }
 ```
-Logging a custom error event that contains additional error data:
-```go
-// create a custom error
-customError := &log.CustomError{
-  Message: "something went wrong",
-  Data:    map[string]interface{}{
-    "error_code": 1093,
-    "backing_service": "kafka",
-    },
-}
 
-// log an error event where custom error has additional parameters (e.g. Data)
-log.Error(context.Background(), "unexpected error", customErr)
-```
-```json
-{
-  "created_at": "2020-12-10T11:16:39.1564Z",
-  "errors": [
-    {
-      "message": "something went wrong",
-      "data": {
-        "error_code": 1093,
-        "backing_service": "kafka",
-      },
-      "stack_trace": [
-        {
-          "file": "/Users/dave/Development/go/ons/log.go/example/main.go",
-          "function": "main.main",
-          "line": 29
-        },
-        {
-          "file": "/usr/local/Cellar/go/1.15.2/libexec/src/runtime/proc.go",
-          "function": "runtime.main",
-          "line": 204
-        },
-        {
-          "file": "/usr/local/Cellar/go/1.15.2/libexec/src/runtime/asm_amd64.s",
-          "function": "runtime.goexit",
-          "line": 1374
-        }
-      ]
-    }
-  ],
-  "event": "unexpected error",
-  "namespace": "dp-logging-example",
-  "severity": 1
-}
-```
 Full code example:
 ```go
 package main
@@ -225,18 +178,6 @@ func main() {
 	log.Error(context.Background(), "unexpected error", err, log.Data{
 		"additional_data": "some value",
 	})
-
-  // an example custom error
-  customError := &log.CustomError{
-    Message: "something went wrong",
-    Data:    map[string]interface{}{
-      "error_code": 1093,
-      "backing_service": "kafka",
-      },
-  }
-
-  // Log an error event with additional parameters
-  log.Error(context.Background(), "unexpected error", customErr)
 }
 ```
 **Notes:**

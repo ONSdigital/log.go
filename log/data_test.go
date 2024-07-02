@@ -7,15 +7,6 @@ import (
 )
 
 func TestData(t *testing.T) {
-	/*
-		TODO
-
-		Somehow test that Data{} is a map[string]interface{}
-
-		More specifically, it must always marshall to an object
-		type in JSON - the actual underlying type doesn't matter
-	*/
-
 	Convey("*Data can be attached to *EventData", t, func() {
 		event := &EventData{}
 		So(event.Data, ShouldBeNil)
