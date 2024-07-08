@@ -37,6 +37,9 @@ func main() {
 	err := errors.New("some error")
 	log.Error(ctx, "v3 error", err)
 
+	// Error with extra data
+	log.Error(ctx, "v3 error with data", err, log.Data{"key": "value", "struct": exampleStruct})
+
 	// Fatal
 	log.Fatal(ctx, "v3 fatal", err)
 

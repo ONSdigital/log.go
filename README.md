@@ -10,10 +10,9 @@ Get the code:
 ```
 git clone git@github.com:ONSdigital/log.go.git
 ```
-**Note:** `log.go` is a Go Module so should be cloned outside your `$GOPATH`.
 
 ### Set up
-To output logs in human readable format set the following environment var:
+To output logs in human-readable format set the following environment var:
 ```bash
 HUMAN_LOG=1
 ```
@@ -21,14 +20,32 @@ HUMAN_LOG=1
 :warning: **This is for local dev use only** - DP developers should not enable human readable log output for apps running 
 in an environment.
 
-### Logging events
-We recommend the first thing your `main` func does is to set the log `namespace`. Doing so will ensure that all log
-events will be indexed correctly by Kibana. By convention the namespace should be the full repo name i.e. `dp-dataset-api`
+To limit the logging level, use the following environment variable:
+```bash
+LOG_LEVEL=WARN
+# or…
+LOG_LEVEL=4
+```
 
-Set the namespace:
+Levles can be either case-insensitive strings (DEBUG,WARN,INFO,ERROR,FATAL) or an integer 
+[slog.Level](https://pkg.go.dev/log/slog#Level) equivalent. The default is INFO (0).
+
+### Logging events
+We recommend the first thing your `main` func does is to initialise logging using the helper function which sets a
+default json logger with the specified namespace. Whithout this, logging uses the default standard library logger which 
+does not produce json formatted logs. By convention the namespace should be the full repo name i.e. `dp-dataset-api`
+
+Initialise logging with the specified namespace:
 ```go
 // set the log namespace
-log.Namespace = "dp-logging-example"
+log.initialise("dp-logging-example")
+```
+
+Supplying optional config options during initialisation:
+```go
+// with human-readable logs and limited to warnings and above (no debug level logs)
+// note, this is not recommended for production use.
+log.initialise("dp-logging-example",config.Pretty,config.Level(log.LevelWarn))
 ```
 
 Logging an INFO event example:
@@ -63,6 +80,7 @@ log.Info(context.Background(), "info message with additional data", log.Data{
     "additional_data3": "value3"
   },
   "event": "info message with additional data",
+  "level": "INFO",
   "namespace": "dp-logging-example",
   "severity": 3
 }
@@ -98,6 +116,7 @@ log.Error(context.Background(), "unexpected error", err)
     }
   ],
   "event": "unexpected error",
+  "level": "ERROR",
   "namespace": "dp-logging-example",
   "severity": 1
 }
@@ -138,6 +157,7 @@ log.Error(context.Background(), "unexpected error", err, log.Data{
     }
   ],
   "event": "unexpected error",
+  "level": "ERROR",
   "namespace": "dp-logging-example",
   "severity": 1
 }
@@ -151,12 +171,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v3/log"
 )
 
 func main() {
 	// set the log namespace
-	log.Namespace = "dp-logging-example"
+	log.Initialise("dp-logging-example")
 
 	// log an info event
 	log.Info(context.Background(), "info message with no additional data")
@@ -200,6 +220,6 @@ func main() {
 
 ### Licence
 
-Copyright ©‎ 2019-2022, Crown Copyright (Office for National Statistics) (https://www.ons.gov.uk)
+Copyright ©‎ 2019-2024, Crown Copyright (Office for National Statistics) (https://www.ons.gov.uk)
 
 Released under MIT license, see [LICENSE](LICENSE.md) for details.
