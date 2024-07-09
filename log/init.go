@@ -42,8 +42,7 @@ func Logger(opts ...config.Option) *slog.Logger {
 }
 
 func replaceAttr(groups []string, a slog.Attr) slog.Attr {
-	switch a.Key {
-	case "msg":
+	if a.Key == "msg" {
 		a.Key = "event"
 	}
 

@@ -74,7 +74,7 @@ func extractXErrStacktrace(xerr error) []EventStackTrace {
 	file := caller[0]
 	lineNum, _ := strconv.Atoi(caller[1])
 
-	return []EventStackTrace{EventStackTrace{
+	return []EventStackTrace{{
 		File:     file,
 		Line:     lineNum,
 		Function: function,
@@ -91,12 +91,12 @@ func extractPkgErrStacktrace(pkgerr error) []EventStackTrace {
 	if ststart < 2 {
 		return st
 	}
-	for i := ststart - 1; lines[i][0] == '\t'; i = i - 2 {
+	for i := ststart - 1; lines[i][0] == '\t'; i -= 2 {
 		ststart = i - 1
 	}
 	stLines := lines[ststart:]
 
-	for i := 0; i < len(stLines); i = i + 2 {
+	for i := 0; i < len(stLines); i += 2 {
 		function := strings.Trim(stLines[i], " ")
 		caller := strings.Split(strings.Trim(stLines[i+1], "\t "), ":")
 		file := caller[0]
