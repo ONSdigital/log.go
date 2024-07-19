@@ -2,12 +2,13 @@ package config_test
 
 import (
 	"fmt"
-	"github.com/ONSdigital/log.go/v3/config"
-	"github.com/ONSdigital/log.go/v3/log"
-	. "github.com/smartystreets/goconvey/convey"
 	"log/slog"
 	"os"
 	"testing"
+
+	"github.com/ONSdigital/log.go/v3/config"
+	"github.com/ONSdigital/log.go/v3/log"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestFromEnv(t *testing.T) {
@@ -93,7 +94,6 @@ func TestFromEnv(t *testing.T) {
 				})
 			}
 		})
-
 	})
 }
 
@@ -132,7 +132,6 @@ func TestFromOptions(t *testing.T) {
 			So(cfg.Namespace, ShouldEqual, ns)
 		})
 	})
-
 }
 
 func TestLevel(t *testing.T) {
@@ -196,13 +195,13 @@ func TestPretty(t *testing.T) {
 		})
 
 		Convey("pretty true when option applied", func() {
-			var opt config.Option = config.Pretty
+			opt := config.Pretty
 			opt(&cfg)
 			So(cfg.Pretty, ShouldBeTrue)
 		})
 
 		Convey("pretty true when multiple options applied", func() {
-			var opt config.Option = config.Pretty
+			opt := config.Pretty
 			opt(&cfg)
 			opt(&cfg)
 			So(cfg.Pretty, ShouldBeTrue)

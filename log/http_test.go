@@ -9,7 +9,7 @@ import (
 )
 
 func TestHTTP(t *testing.T) {
-	req, _ := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", nil)
+	req, _ := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", http.NoBody)
 
 	Convey("HTTP function returns a *EventHTTP", t, func() {
 		eventHTTP := HTTP(req, 0, 0, nil, nil)
@@ -67,5 +67,4 @@ func TestHTTP(t *testing.T) {
 
 		So(httpEvent.Duration, ShouldBeNil)
 	})
-
 }

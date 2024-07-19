@@ -1,11 +1,12 @@
 package log
 
 import (
-	"github.com/ONSdigital/log.go/v3/config"
-	"github.com/ONSdigital/log.go/v3/log/pretty"
 	"io"
 	"log/slog"
 	"os"
+
+	"github.com/ONSdigital/log.go/v3/config"
+	"github.com/ONSdigital/log.go/v3/log/pretty"
 )
 
 // Initialise is a helper function that creates a new [slog.Logger] with common options and sets it as the default logger

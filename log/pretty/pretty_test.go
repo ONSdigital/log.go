@@ -2,11 +2,12 @@ package pretty_test
 
 import (
 	"bufio"
-	"github.com/ONSdigital/log.go/v3/log/pretty"
-	"github.com/acarl005/stripansi"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/ONSdigital/log.go/v3/log/pretty"
+	"github.com/acarl005/stripansi"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -46,15 +47,11 @@ func TestData(t *testing.T) {
 
 		Convey("Non-JSON lines get printed as-is", func() {
 			src := `Something here`
-			exp := `Something here`
 			pw.Write([]byte(src + "\n"))
-			for _, lnexp := range strings.Split(exp, "\n") {
-				sr.Scan()
-				ln := sr.Text()
-				cleanLn := stripansi.Strip(ln)
-				So(cleanLn, ShouldEqual, lnexp)
-			}
+			sr.Scan()
+			ln := sr.Text()
+			cleanLn := stripansi.Strip(ln)
+			So(cleanLn, ShouldEqual, src)
 		})
-
 	})
 }

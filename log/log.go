@@ -2,9 +2,10 @@ package log
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/ONSdigital/dp-net/v2/request"
 	"go.opentelemetry.io/otel/trace"
-	"log/slog"
 )
 
 const (
@@ -56,32 +57,32 @@ func Default() *slog.Logger {
 // the log output will be syntax highlighted pretty printed JSON. Otherwise,
 // the output is JSONLines format, with one JSON object per line.
 func Event(ctx context.Context, event string, severity severity, opts ...option) {
-	attrs := createEvent(ctx, event, severity, opts...).ToAttrs()
+	attrs := createEvent(ctx, severity, opts...).ToAttrs()
 	Default().LogAttrs(ctx, SeverityToLevel(severity), event, attrs...)
 }
 
 // Info wraps the Event function with the severity level set to INFO
 func Info(ctx context.Context, event string, opts ...option) {
-	attrs := createEvent(ctx, event, INFO, opts...).ToAttrs()
+	attrs := createEvent(ctx, INFO, opts...).ToAttrs()
 	Default().LogAttrs(ctx, slog.LevelInfo, event, attrs...)
 }
 
 // Warn wraps the Event function with the severity level set to WARN
 func Warn(ctx context.Context, event string, opts ...option) {
-	attrs := createEvent(ctx, event, WARN, opts...).ToAttrs()
+	attrs := createEvent(ctx, WARN, opts...).ToAttrs()
 	Default().LogAttrs(ctx, slog.LevelWarn, event, attrs...)
 }
 
 // Error wraps the Event function with the severity level set to ERROR
 func Error(ctx context.Context, event string, err error, opts ...option) {
-	attrs := createEvent(ctx, event, ERROR, opts...).ToAttrs()
+	attrs := createEvent(ctx, ERROR, opts...).ToAttrs()
 	attrs = append(attrs, slog.Any("error", err))
 	Default().LogAttrs(ctx, slog.LevelError, event, attrs...)
 }
 
 // Fatal wraps the Event function with the severity level set to FATAL
 func Fatal(ctx context.Context, event string, err error, opts ...option) {
-	attrs := createEvent(ctx, event, FATAL, opts...).ToAttrs()
+	attrs := createEvent(ctx, FATAL, opts...).ToAttrs()
 	attrs = append(attrs, slog.Any("error", err))
 	Default().LogAttrs(ctx, LevelFatal, event, attrs...)
 }
@@ -143,18 +144,18 @@ func (ed *EventData) ToAttrs() []slog.Attr {
 }
 
 // createEvent creates a new event struct and attaches the options to it
-func createEvent(ctx context.Context, event string, severity severity, opts ...option) *EventData {
+func createEvent(ctx context.Context, severity severity, opts ...option) *EventData {
 	e := EventData{
 		Severity: &severity,
 	}
 
 	if ctx != nil {
-		e.TraceID = getRequestId(ctx)
+		e.TraceID = getRequestID(ctx)
 	}
 
-	otelTraceId := trace.SpanFromContext(ctx).SpanContext().TraceID()
-	if otelTraceId.IsValid() {
-		e.TraceID = otelTraceId.String()
+	otelTraceID := trace.SpanFromContext(ctx).SpanContext().TraceID()
+	if otelTraceID.IsValid() {
+		e.TraceID = otelTraceID.String()
 	}
 
 	// loop around each log option and call its attach method, which takes care
@@ -166,7 +167,7 @@ func createEvent(ctx context.Context, event string, severity severity, opts ...o
 	return &e
 }
 
-func getRequestId(ctx context.Context) string {
+func getRequestID(ctx context.Context) string {
 	requestID := ctx.Value(request.RequestIdKey)
 	if requestID == nil {
 		requestID = ctx.Value("request-id")

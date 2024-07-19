@@ -3,44 +3,31 @@ package log
 import (
 	"context"
 	"errors"
-	"github.com/ONSdigital/dp-net/v2/request"
-	. "github.com/smartystreets/goconvey/convey"
 	"log/slog"
 	"testing"
+
+	"github.com/ONSdigital/dp-net/v2/request"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-type writer struct {
-	write func(b []byte) (n int, err error)
-}
-
-func (w writer) Write(b []byte) (n int, err error) {
-	if w.write != nil {
-		return w.write(b)
-	}
-
-	return 0, nil
-}
-
-// withRequestId sets the correlation id on the context
-func withRequestId(ctx context.Context, correlationId string) context.Context {
-	return context.WithValue(ctx, "request-id", correlationId)
+// withRequestID sets the correlation id on the context
+func withRequestID(ctx context.Context, correlationID string) context.Context {
+	return context.WithValue(ctx, "request-id", correlationID)
 }
 
 func TestLog(t *testing.T) {
 	t.Parallel()
 
 	Convey("createEvent creates a new event", t, func() {
-
 		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
-			ctx := withRequestId(context.Background(), "trace ID")
-			evt := createEvent(ctx, "event", INFO)
+			ctx := withRequestID(context.Background(), "trace ID")
+			evt := createEvent(ctx, INFO)
 			So(evt.TraceID, ShouldEqual, "trace ID")
 
-			ctx = withRequestId(context.Background(), "another ID")
-			evt = createEvent(ctx, "event", INFO)
+			ctx = withRequestID(context.Background(), "another ID")
+			evt = createEvent(ctx, INFO)
 			So(evt.TraceID, ShouldEqual, "another ID")
 		})
-
 	})
 }
 
@@ -51,7 +38,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.WithValue(context.Background(), "request-id", "test123")
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldEqual, "test123")
@@ -63,7 +50,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.WithValue(context.Background(), request.RequestIdKey, "test321")
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldEqual, "test321")
@@ -75,7 +62,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.Background()
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldBeEmpty)
@@ -88,8 +75,8 @@ func TestToAttrs(t *testing.T) {
 	t.Parallel()
 
 	const (
-		testTraceId   = "trace-id"
-		testSpanId    = "span-id"
+		testTraceID   = "trace-id"
+		testSpanID    = "span-id"
 		testDataKey   = "key"
 		testDataValue = "value"
 	)
@@ -98,15 +85,14 @@ func TestToAttrs(t *testing.T) {
 	)
 
 	Convey("Given some EventData", t, func() {
-
-		eventHttp := EventHTTP{}
+		eventHTTP := EventHTTP{}
 		eventData := Data{testDataKey: testDataValue}
 
 		ed := EventData{
-			TraceID:  testTraceId,
-			SpanID:   testSpanId,
+			TraceID:  testTraceID,
+			SpanID:   testSpanID,
 			Severity: &testSeverity,
-			HTTP:     &eventHttp,
+			HTTP:     &eventHTTP,
 			Data:     &eventData,
 		}
 
@@ -117,20 +103,19 @@ func TestToAttrs(t *testing.T) {
 			Convey("Then the values are in the attributes as expected", func() {
 				So(attrs, ShouldHaveLength, 5)
 				So(attrs[0].Key, ShouldEqual, "trace_id")
-				So(attrs[0].Value.String(), ShouldEqual, testTraceId)
+				So(attrs[0].Value.String(), ShouldEqual, testTraceID)
 				So(attrs[1].Key, ShouldEqual, "span_id")
-				So(attrs[1].Value.String(), ShouldEqual, testSpanId)
+				So(attrs[1].Value.String(), ShouldEqual, testSpanID)
 				So(attrs[2].Key, ShouldEqual, "severity")
 				So(attrs[2].Value.Int64(), ShouldEqual, testSeverity)
 				So(attrs[3].Key, ShouldEqual, "http")
 				httpValue := attrs[3].Value
 				So(httpValue, ShouldNotBeNil)
-				So(httpValue.Any(), ShouldResemble, eventHttp)
+				So(httpValue.Any(), ShouldResemble, eventHTTP)
 				So(attrs[4].Key, ShouldEqual, "data")
 				dataValue := attrs[4].Value
 				So(dataValue, ShouldNotBeNil)
 				So(dataValue.Any(), ShouldResemble, eventData)
-
 			})
 		})
 	})
@@ -184,7 +169,6 @@ func TestInfo(t *testing.T) {
 				So(dataAttr.Value.Any(), ShouldResemble, data)
 			})
 		})
-
 	})
 }
 
@@ -236,7 +220,6 @@ func TestWarn(t *testing.T) {
 				So(dataAttr.Value.Any(), ShouldResemble, data)
 			})
 		})
-
 	})
 }
 
@@ -295,7 +278,6 @@ func TestError(t *testing.T) {
 				So(dataAttr.Value.Any(), ShouldResemble, data)
 			})
 		})
-
 	})
 }
 
@@ -354,7 +336,6 @@ func TestFatal(t *testing.T) {
 				So(dataAttr.Value.Any(), ShouldResemble, data)
 			})
 		})
-
 	})
 }
 
@@ -386,7 +367,7 @@ func (m *mockHandler) Reset() {
 }
 
 func getAttrFromRecord(r *slog.Record, key string) *slog.Attr {
-	var foundAttr *slog.Attr = nil
+	var foundAttr *slog.Attr
 	r.Attrs(func(attr slog.Attr) bool {
 		if attr.Key == key {
 			foundAttr = &attr

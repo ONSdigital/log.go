@@ -56,6 +56,14 @@ func main() {
 			slog.String("string_attr2", "a string"),
 			slog.Int("int_attr", 123)))
 
+	slog.Warn("slog with warn",
+		slog.String("string_attr", "a string"),
+	)
+
+	slog.Error("slog with error",
+		slog.String("string_attr", "a string"),
+	)
+
 	// Give the human formatter time to finish
 	time.Sleep(time.Second)
 }

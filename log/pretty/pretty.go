@@ -2,8 +2,9 @@ package pretty
 
 import (
 	"bufio"
-	"github.com/hokaccha/go-prettyjson"
 	"io"
+
+	"github.com/hokaccha/go-prettyjson"
 )
 
 // NewPrettyWriter wraps the supplied output writer with a filter that converts lines of JSON to pretty-printed lines
@@ -22,10 +23,16 @@ func NewPrettyWriter(out io.Writer) io.WriteCloser {
 			raw := []byte(br.Text())
 			output, err := prettyjson.Format(raw)
 			if err != nil {
-				out.Write(append(raw, '\n'))
+				_, err = out.Write(append(raw, '\n'))
+				if err != nil {
+					panic("could not output raw line")
+				}
 				continue
 			}
-			out.Write(append(output, '\n'))
+			_, err = out.Write(append(output, '\n'))
+			if err != nil {
+				panic("could not output pretty json")
+			}
 			continue
 		}
 	}()

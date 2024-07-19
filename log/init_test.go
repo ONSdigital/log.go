@@ -2,10 +2,11 @@ package log
 
 import (
 	"errors"
-	"github.com/ONSdigital/log.go/v3/config"
 	"log/slog"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/log.go/v3/config"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -104,7 +105,5 @@ func Test_replaceAttr(t *testing.T) {
 				So(result, ShouldResemble, tc.wanted)
 			})
 		}
-
 	})
-
 }

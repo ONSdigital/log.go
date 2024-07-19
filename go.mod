@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/ONSdigital/dp-net/v2 v2.11.1
+	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.8.1
@@ -14,7 +15,6 @@ require (
 
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.254.1 // indirect
-	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

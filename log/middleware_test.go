@@ -98,7 +98,6 @@ func TestResponseCapture(t *testing.T) {
 }
 
 func TestMiddleware(t *testing.T) {
-
 	// Return default logger after run
 	currentDefault := Default()
 	defer SetDefault(currentDefault)
@@ -109,12 +108,11 @@ func TestMiddleware(t *testing.T) {
 		SetDefault(logger)
 
 		var handlerWasCalled bool
-
 		h := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			handlerWasCalled = true
 			w.WriteHeader(200)
 		})
-		m := Middleware(http.HandlerFunc(h))
+		m := Middleware(h)
 		So(m, ShouldHaveSameTypeAs, h)
 
 		Convey("Middleware logs an event on nil request", func() {
@@ -135,7 +133,7 @@ func TestMiddleware(t *testing.T) {
 
 		Convey("Inner handler is called by middleware", func() {
 			So(handlerWasCalled, ShouldBeFalse)
-			req, err := http.NewRequest("GET", "/", nil)
+			req, err := http.NewRequest("GET", "/", http.NoBody)
 			So(err, ShouldBeNil)
 			So(req, ShouldNotBeNil)
 			m.ServeHTTP(&responseWriter{}, req)
@@ -145,7 +143,7 @@ func TestMiddleware(t *testing.T) {
 		Convey("Start and end events are logged", func() {
 			mockHndlr.Reset()
 
-			req, err := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", nil)
+			req, err := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", http.NoBody)
 			So(err, ShouldBeNil)
 			ctx := context.Background()
 			req = req.WithContext(ctx)
