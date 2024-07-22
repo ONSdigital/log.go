@@ -214,10 +214,6 @@ func main() {
 - The `log.Event()` interface does not require you to provide a log (severity) level but it's recommended you provide this 
   field if possible/where appropriate. Better yet use the Wrapper functions `log.Info(...)`, `log.Warn(...)`, `log.Error(...)` and `log.Fatal(...)` to inherit log level.
 
-### Scripts
-
-* [edit-logs.sh](scripts) - helpful script to assist the updating of go-ns logs to v1 log.go logs package; it covers the majority of old logging styles from go-ns and converts them into expected logs that are compatible with version 1 of this library.
-
 ### Licence
 
 Copyright ©‎ 2019-2024, Crown Copyright (Office for National Statistics) (https://www.ons.gov.uk)
