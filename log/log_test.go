@@ -18,8 +18,8 @@ func withRequestID(ctx context.Context, correlationID string) context.Context {
 func TestLog(t *testing.T) {
 	t.Parallel()
 
-	Convey("createEvent creates a new event", t, func() {
-		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
+	Convey("Function createEvent creates a new event", t, func() {
+		Convey("Function createEvent sets the TraceID field to the request ID in the context", func() {
 			ctx := withRequestID(context.Background(), "trace ID")
 			evt := createEvent(ctx, INFO)
 			So(evt.TraceID, ShouldEqual, "trace ID")

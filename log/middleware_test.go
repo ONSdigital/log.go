@@ -36,12 +36,12 @@ func (r *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 func TestResponseCapture(t *testing.T) {
-	Convey("responseCapture implements http.ResponseWriter", t, func() {
+	Convey("Type responseCapture implements http.ResponseWriter", t, func() {
 		r := &responseCapture{&responseWriter{}, nil, 0}
 		So(r, ShouldImplement, (*http.ResponseWriter)(nil))
 	})
 
-	Convey("responseCapture implements http.Flusher", t, func() {
+	Convey("Type responseCapture implements http.Flusher", t, func() {
 		rw := &responseWriter{}
 		r := &responseCapture{rw, nil, 0}
 		So(r, ShouldImplement, (*http.Flusher)(nil))
@@ -50,7 +50,7 @@ func TestResponseCapture(t *testing.T) {
 		So(rw.flushCalled, ShouldBeTrue)
 	})
 
-	Convey("responseCapture implements http.Hijacker", t, func() {
+	Convey("Type responseCapture implements http.Hijacker", t, func() {
 		rw := &responseWriter{}
 		r := &responseCapture{rw, nil, 0}
 		So(r, ShouldImplement, (*http.Hijacker)(nil))
@@ -67,8 +67,8 @@ func TestResponseCapture(t *testing.T) {
 		})
 	})
 
-	Convey("responseCapture records the status code", t, func() {
-		Convey("responseCapture records the status code when calling WriteHeader", func() {
+	Convey("Type responseCapture records the status code", t, func() {
+		Convey("Type responseCapture records the status code when calling WriteHeader", func() {
 			r := &responseCapture{&responseWriter{}, nil, 0}
 			So(r.statusCode, ShouldBeNil)
 			r.WriteHeader(501)
@@ -76,7 +76,7 @@ func TestResponseCapture(t *testing.T) {
 			So(*r.statusCode, ShouldEqual, 501)
 		})
 
-		Convey("responseCapture records the status code when skipping WriteHeader", func() {
+		Convey("Type responseCapture records the status code when skipping WriteHeader", func() {
 			r := &responseCapture{&responseWriter{}, nil, 0}
 			So(r.statusCode, ShouldBeNil)
 			r.Write([]byte{})
@@ -85,7 +85,7 @@ func TestResponseCapture(t *testing.T) {
 		})
 	})
 
-	Convey("responseCapture records the number of bytes written", t, func() {
+	Convey("Type responseCapture records the number of bytes written", t, func() {
 		r := &responseCapture{&responseWriter{}, nil, 0}
 		So(r.bytesWritten, ShouldEqual, 0)
 

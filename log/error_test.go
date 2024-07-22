@@ -14,7 +14,7 @@ import (
 )
 
 func TestFormatAsErrors(t *testing.T) {
-	Convey("with a number of predefined errors", t, func() {
+	Convey("With a number of predefined errors", t, func() {
 		// line number of here used as datum for generated stack traces
 		pc, datumFile, datumline, _ := runtime.Caller(0)
 		datumFunc := runtime.FuncForPC(pc).Name()
@@ -40,7 +40,7 @@ func TestFormatAsErrors(t *testing.T) {
 		xpb := xerrors.Errorf("x wrapped %w", pb)
 		pxb := pkgerrors.Wrap(xb, "pkg wrapped")
 
-		Convey("basic errors generate no stacktrace", func() {
+		Convey("Basic errors generate no stacktrace", func() {
 			fmtdErrors := log.FormatAsErrors(berr)
 			So(fmtdErrors, ShouldHaveLength, 1)
 			So(fmtdErrors[0].Message, ShouldEqual, berr.Error())
@@ -57,7 +57,7 @@ func TestFormatAsErrors(t *testing.T) {
 			So(fmtdErrors[2].Message, ShouldEqual, berr.Error())
 		})
 
-		Convey("pkg errors generate appropriate stacktrace", func() {
+		Convey("Pkg errors generate appropriate stacktrace", func() {
 			fmtdErrors := log.FormatAsErrors(perr)
 			So(fmtdErrors, ShouldHaveLength, 1)
 			So(fmtdErrors[0].Message, ShouldEqual, perr.Error())
@@ -111,7 +111,7 @@ func TestFormatAsErrors(t *testing.T) {
 			So(fmtdErrors[4].StackTrace[0].Function, ShouldEqual, datumFunc)
 		})
 
-		Convey("golang xerrors generate appropriate stacktrace", func() {
+		Convey("Golang xerrors generate appropriate stacktrace", func() {
 			fmtdErrors := log.FormatAsErrors(xerr)
 			So(fmtdErrors, ShouldHaveLength, 1)
 			So(fmtdErrors[0].Message, ShouldEqual, xerr.Error())
@@ -153,7 +153,7 @@ func TestFormatAsErrors(t *testing.T) {
 			So(fmtdErrors[2].StackTrace[0].Function, ShouldEqual, datumFunc)
 		})
 
-		Convey("mixed errors generate appropriate stacktrace", func() {
+		Convey("Mixed errors generate appropriate stacktrace", func() {
 			fmtdErrors := log.FormatAsErrors(pb)
 			So(fmtdErrors, ShouldHaveLength, 3)
 			So(fmtdErrors[0].Message, ShouldEqual, pb.Error())

@@ -102,30 +102,30 @@ func TestFromOptions(t *testing.T) {
 		ns = "some_namespace"
 	)
 
-	Convey("with some predefined config options", t, func() {
+	Convey("With some predefined config options", t, func() {
 		prettyTrueOpt := func(cfg *config.Config) { cfg.Pretty = true }
 		prettyFalseOpt := func(cfg *config.Config) { cfg.Pretty = false }
 		nsOpt := func(cfg *config.Config) { cfg.Namespace = ns }
 
-		Convey("no opts leaves config unchanged", func() {
+		Convey("No opts leaves config unchanged", func() {
 			cfg := config.FromOptions()
 			So(cfg, ShouldNotBeNil)
 			So(*cfg, ShouldEqual, config.Config{})
 		})
 
-		Convey("single opt should set appropriate value", func() {
+		Convey("Single opt should set appropriate value", func() {
 			cfg := config.FromOptions(prettyTrueOpt)
 			So(cfg, ShouldNotBeNil)
 			So(cfg.Pretty, ShouldBeTrue)
 		})
 
-		Convey("duplicate opts should use last value", func() {
+		Convey("Duplicate opts should use last value", func() {
 			cfg := config.FromOptions(prettyTrueOpt, prettyFalseOpt)
 			So(cfg, ShouldNotBeNil)
 			So(cfg.Pretty, ShouldBeFalse)
 		})
 
-		Convey("multiple opts should not conflict", func() {
+		Convey("Multiple opts should not conflict", func() {
 			cfg := config.FromOptions(prettyTrueOpt, nsOpt)
 			So(cfg, ShouldNotBeNil)
 			So(cfg.Pretty, ShouldBeTrue)
@@ -190,17 +190,17 @@ func TestPretty(t *testing.T) {
 	Convey("Starting with a blank config", t, func() {
 		cfg := config.Config{}
 
-		Convey("config defaults to false", func() {
+		Convey("Config defaults to false", func() {
 			So(cfg.Pretty, ShouldBeFalse)
 		})
 
-		Convey("pretty true when option applied", func() {
+		Convey("Pretty true when option applied", func() {
 			opt := config.Pretty
 			opt(&cfg)
 			So(cfg.Pretty, ShouldBeTrue)
 		})
 
-		Convey("pretty true when multiple options applied", func() {
+		Convey("Pretty true when multiple options applied", func() {
 			opt := config.Pretty
 			opt(&cfg)
 			opt(&cfg)
