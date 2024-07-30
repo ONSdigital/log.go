@@ -21,21 +21,21 @@ var (
 
 func TestLogger(t *testing.T) {
 	Convey("With an empty logger var", t, func() {
-		var logger *slog.Logger
+		var handler slog.Handler
 
-		Convey("Calling Logger with no options returns a logger", func() {
-			logger = Logger()
-			So(logger, ShouldNotBeNil)
+		Convey("Calling Handler with no options returns a logger", func() {
+			handler = Handler()
+			So(handler, ShouldNotBeNil)
 		})
 
-		Convey("Calling Logger with pretty returns a logger", func() {
-			logger = Logger(config.Pretty)
-			So(logger, ShouldNotBeNil)
+		Convey("Calling Handler with pretty returns a logger", func() {
+			handler = Handler(config.Pretty)
+			So(handler, ShouldNotBeNil)
 		})
 
-		Convey("Calling Logger with a namespace returns a logger", func() {
-			logger = Logger(config.Namespace("some new namespace"))
-			So(logger, ShouldNotBeNil)
+		Convey("Calling Handler with a namespace returns a logger", func() {
+			handler = Handler(config.Namespace("some new namespace"))
+			So(handler, ShouldNotBeNil)
 		})
 	})
 }

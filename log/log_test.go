@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"maps"
 	"testing"
 
 	"github.com/ONSdigital/dp-net/v2/request"
@@ -147,8 +148,14 @@ func TestInfo(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelInfo)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, INFO)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, INFO)
 			})
 		})
 
@@ -162,11 +169,19 @@ func TestInfo(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelInfo)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, INFO)
-				dataAttr := getAttrFromRecord(&record, "data")
-				So(dataAttr, ShouldNotBeNil)
-				So(dataAttr.Value.Any(), ShouldResemble, data)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, INFO)
+
+				So(values, ShouldContainKey, "data")
+				value = values["data"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, data)
 			})
 		})
 	})
@@ -198,8 +213,14 @@ func TestWarn(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelWarn)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, WARN)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, WARN)
 			})
 		})
 
@@ -213,11 +234,19 @@ func TestWarn(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelWarn)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, WARN)
-				dataAttr := getAttrFromRecord(&record, "data")
-				So(dataAttr, ShouldNotBeNil)
-				So(dataAttr.Value.Any(), ShouldResemble, data)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, WARN)
+
+				So(values, ShouldContainKey, "data")
+				value = values["data"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, data)
 			})
 		})
 	})
@@ -252,10 +281,19 @@ func TestError(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelError)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, ERROR)
-				errorAttr := getAttrFromRecord(&record, "error")
-				So(errorAttr.Value.Any(), ShouldEqual, testError)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, ERROR)
+
+				So(values, ShouldContainKey, "error")
+				value = values["error"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, testError)
 			})
 		})
 
@@ -269,13 +307,23 @@ func TestError(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelError)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, ERROR)
-				errorAttr := getAttrFromRecord(&record, "error")
-				So(errorAttr.Value.Any(), ShouldEqual, testError)
-				dataAttr := getAttrFromRecord(&record, "data")
-				So(dataAttr, ShouldNotBeNil)
-				So(dataAttr.Value.Any(), ShouldResemble, data)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, ERROR)
+
+				So(values, ShouldContainKey, "error")
+				value = values["error"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, testError)
+
+				value = values["data"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, data)
 			})
 		})
 	})
@@ -310,10 +358,19 @@ func TestFatal(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelFatal)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, FATAL)
-				errorAttr := getAttrFromRecord(&record, "error")
-				So(errorAttr.Value.Any(), ShouldEqual, testError)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, FATAL)
+
+				So(values, ShouldContainKey, "error")
+				value = values["error"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, testError)
 			})
 		})
 
@@ -327,13 +384,23 @@ func TestFatal(t *testing.T) {
 				record := mockHndlr.handeRecords[0]
 				So(record.Message, ShouldResemble, testEvent)
 				So(record.Level, ShouldEqual, LevelFatal)
-				sevAttr := getAttrFromRecord(&record, "severity")
-				So(sevAttr.Value.Int64(), ShouldEqual, FATAL)
-				errorAttr := getAttrFromRecord(&record, "error")
-				So(errorAttr.Value.Any(), ShouldEqual, testError)
-				dataAttr := getAttrFromRecord(&record, "data")
-				So(dataAttr, ShouldNotBeNil)
-				So(dataAttr.Value.Any(), ShouldResemble, data)
+
+				values := getValuesFromRecord(&record)
+				So(values, ShouldNotBeEmpty)
+
+				So(values, ShouldContainKey, "severity")
+				value := values["severity"]
+				So(value.Kind(), ShouldEqual, slog.KindInt64)
+				So(value.Int64(), ShouldEqual, FATAL)
+
+				So(values, ShouldContainKey, "error")
+				value = values["error"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, testError)
+
+				value = values["data"]
+				So(value.Any(), ShouldNotBeNil)
+				So(value.Any(), ShouldResemble, data)
 			})
 		})
 	})
@@ -366,14 +433,25 @@ func (m *mockHandler) Reset() {
 	m.handeRecords = []slog.Record{}
 }
 
-func getAttrFromRecord(r *slog.Record, key string) *slog.Attr {
-	var foundAttr *slog.Attr
+// getValuesFromRecord is a test helper function that returns all the values in a log record in a map with group keys dot-separated
+func getValuesFromRecord(r *slog.Record) map[string]slog.Value {
+	values := make(map[string]slog.Value)
 	r.Attrs(func(attr slog.Attr) bool {
-		if attr.Key == key {
-			foundAttr = &attr
-			return false
-		}
+		maps.Copy(values, getValuesFromAttr(&attr, ""))
 		return true
 	})
-	return foundAttr
+	return values
+}
+
+func getValuesFromAttr(a *slog.Attr, prefix string) map[string]slog.Value {
+	switch a.Value.Kind() {
+	case slog.KindGroup:
+		values := make(map[string]slog.Value)
+		for _, ga := range a.Value.Group() {
+			maps.Copy(values, getValuesFromAttr(&ga, prefix+a.Key+"."))
+		}
+		return values
+	default:
+		return map[string]slog.Value{prefix + a.Key: a.Value}
+	}
 }

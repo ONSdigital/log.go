@@ -16,16 +16,16 @@ func Initialise(ns string, opts ...config.Option) {
 	// Add EnvVar processor and namespace to config options
 	opts = append([]config.Option{config.FromEnv, config.Namespace(ns)}, opts...)
 
-	logger := Logger(opts...)
+	handler := Handler(opts...)
 
-	SetDefault(logger)
+	SetDefault(slog.New(handler))
 
-	stdLogger := logger.With(slog.Int("severity", int(INFO))).WithGroup("data")
-	slog.SetDefault(stdLogger)
+	stdHandler := ModifyingHandler{handler}
+	slog.SetDefault(slog.New(stdHandler))
 }
 
-// Logger is a function that returns a [slog.Logger] based on the supplied [config.Option] vararg.
-func Logger(opts ...config.Option) *slog.Logger {
+// Handler is a function that returns a [slog.Logger] based on the supplied [config.Option] vararg.
+func Handler(opts ...config.Option) slog.Handler {
 	cfg := config.FromOptions(opts...)
 
 	var out io.Writer = os.Stdout
@@ -33,13 +33,13 @@ func Logger(opts ...config.Option) *slog.Logger {
 		out = pretty.NewPrettyWriter(out)
 	}
 
-	logger := slog.New(slog.NewJSONHandler(out, &slog.HandlerOptions{Level: cfg.Level, ReplaceAttr: replaceAttr}))
+	var hdlr slog.Handler = slog.NewJSONHandler(out, &slog.HandlerOptions{Level: cfg.Level, ReplaceAttr: replaceAttr})
 
 	if cfg.Namespace != "" {
-		logger = logger.With(slog.String("namespace", cfg.Namespace))
+		hdlr = hdlr.WithAttrs([]slog.Attr{slog.String("namespace", cfg.Namespace)})
 	}
 
-	return logger
+	return hdlr
 }
 
 func replaceAttr(groups []string, a slog.Attr) slog.Attr {

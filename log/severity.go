@@ -1,6 +1,8 @@
 package log
 
-import "log/slog"
+import (
+	"log/slog"
+)
 
 const (
 	// FATAL is an option you can pass to Event to specify a severity of FATAL/0
