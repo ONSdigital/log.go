@@ -214,6 +214,19 @@ func main() {
 - The `log.Event()` interface does not require you to provide a log (severity) level but it's recommended you provide this 
   field if possible/where appropriate. Better yet use the Wrapper functions `log.Info(...)`, `log.Warn(...)`, `log.Error(...)` and `log.Fatal(...)` to inherit log level.
 
+### Upgrading from v2
+
+To upgrade a service from using v2 of the logging library to v3 requires a small number of steps.
+ - In the app you wish to upgrade, run `go get "github.com/ONSdigital/log.go/v3` to import the new library
+ - In 'main.go' 
+   - change the import from `github.com/ONSdigital/log.go/v2/log` to `github.com/ONSdigital/log.go/v2/log` 
+   - in `func main()` amend `log.Namespace = serviceName` to `log.Initialise(serviceName)`
+  - Search for any imports of log.go in any go files in the library to change from v2 to v3 of the library
+  - Run `go mod tidy` or similar to remove reference to v2 from the app's dependencies. 
+  - Some libraries such as `dp-kafka` or `dp-net` may also need to be upgraded to overcome transitive dependency on the
+    v2 library 
+
+
 ### Licence
 
 Copyright ©‎ 2019-2024, Crown Copyright (Office for National Statistics) (https://www.ons.gov.uk)
