@@ -82,7 +82,7 @@ func extractXErrStacktrace(xerr error) []EventStackTrace {
 }
 
 func extractPkgErrStacktrace(pkgerr error) []EventStackTrace {
-	st := []EventStackTrace{}
+	var st []EventStackTrace
 
 	errstr := fmt.Sprintf("%+v", pkgerr)
 	lines := strings.Split(errstr, "\n")

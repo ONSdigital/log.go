@@ -39,7 +39,8 @@ func TestFromEnv(t *testing.T) {
 
 			for _, test := range tests {
 				Convey("When HUMAN_LOG="+test.value, func() {
-					os.Setenv("HUMAN_LOG", test.value)
+					err := os.Setenv("HUMAN_LOG", test.value)
+					So(err, ShouldBeNil)
 					config.FromEnv(&cfg)
 					So(cfg.Pretty, ShouldEqual, test.wanted)
 				})
@@ -88,7 +89,8 @@ func TestFromEnv(t *testing.T) {
 			for _, test := range tests {
 				Convey("When HUMAN_LOG="+test.value, func() {
 					cfg.Level = initialLevel
-					os.Setenv("LOG_LEVEL", test.value)
+					err := os.Setenv("LOG_LEVEL", test.value)
+					So(err, ShouldBeNil)
 					config.FromEnv(&cfg)
 					So(cfg.Level, ShouldEqual, test.wanted)
 				})

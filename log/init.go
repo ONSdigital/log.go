@@ -42,6 +42,7 @@ func Handler(opts ...config.Option) slog.Handler {
 	return hdlr
 }
 
+// replaceAttr function to be used by a slog handler to rename attributes and expand errors
 func replaceAttr(groups []string, a slog.Attr) slog.Attr {
 	if a.Key == "msg" {
 		a.Key = "event"

@@ -37,6 +37,11 @@ func TestLogger(t *testing.T) {
 			handler = Handler(config.Namespace("some new namespace"))
 			So(handler, ShouldNotBeNil)
 		})
+
+		Convey("Calling Handler with multiple options returns a logger", func() {
+			handler = Handler(config.Pretty, config.Namespace("some new namespace"))
+			So(handler, ShouldNotBeNil)
+		})
 	})
 }
 
@@ -95,6 +100,14 @@ func Test_replaceAttr(t *testing.T) {
 							StackTrace: []EventStackTrace{},
 						},
 					}),
+				},
+			},
+			{`unmatched attr remains unchanged`,
+				nil,
+				slog.String("anything", "some_value"),
+				slog.Attr{
+					Key:   "anything",
+					Value: slog.StringValue("some_value"),
 				},
 			},
 		}
