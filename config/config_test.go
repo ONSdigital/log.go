@@ -192,7 +192,7 @@ func TestPretty(t *testing.T) {
 	Convey("Starting with a blank config", t, func() {
 		cfg := config.Config{}
 
-		Convey("Config defaults to false", func() {
+		Convey("Config Pretty defaults to false", func() {
 			So(cfg.Pretty, ShouldBeFalse)
 		})
 

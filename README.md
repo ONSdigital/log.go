@@ -27,8 +27,8 @@ LOG_LEVEL=WARN
 LOG_LEVEL=4
 ```
 
-Levles can be either case-insensitive strings (DEBUG,WARN,INFO,ERROR,FATAL) or an integer 
-[slog.Level](https://pkg.go.dev/log/slog#Level) equivalent. The default is INFO (0).
+Levels can be either case-insensitive strings (`DEBUG`, `WARN`, `INFO`, `ERROR`, `FATAL`) or an integer 
+[slog.Level](https://pkg.go.dev/log/slog#Level) equivalent. The default is `INFO` (`0`).
 
 ### Logging events
 We recommend the first thing your `main` func does is to initialise logging using the helper function which sets a
@@ -38,14 +38,14 @@ does not produce json formatted logs. By convention the namespace should be the 
 Initialise logging with the specified namespace:
 ```go
 // set the log namespace
-log.initialise("dp-logging-example")
+log.Initialise("dp-logging-example")
 ```
 
 Supplying optional config options during initialisation:
 ```go
 // with human-readable logs and limited to warnings and above (no debug level logs)
 // note, this is not recommended for production use.
-log.initialise("dp-logging-example",config.Pretty,config.Level(log.LevelWarn))
+log.Initialise("dp-logging-example",config.Pretty,config.Level(log.LevelWarn))
 ```
 
 Logging an INFO event example:
@@ -217,7 +217,7 @@ func main() {
 ### Upgrading from v2
 
 To upgrade a service from using v2 of the logging library to v3 requires a small number of steps.
- - In the app you wish to upgrade, run `go get "github.com/ONSdigital/log.go/v3` to import the new library
+ - In the app you wish to upgrade, run `go get github.com/ONSdigital/log.go/v3` to import the new library
  - In 'main.go' 
    - change the import from `github.com/ONSdigital/log.go/v2/log` to `github.com/ONSdigital/log.go/v2/log` 
    - in `func main()` amend `log.Namespace = serviceName` to `log.Initialise(serviceName)`
