@@ -46,6 +46,7 @@ func TestLog(t *testing.T) {
 			//
 			// I'm leaving it in to show the intent, even if it can't be verified by the test
 
+			//nolint:gocritic // explained above.
 			// So(destination, ShouldEqual, os.Stdout)
 		})
 
@@ -56,6 +57,7 @@ func TestLog(t *testing.T) {
 			//
 			// I'm leaving it in to show the intent, even if it can't be verified by the test
 
+			//nolint:gocritic // explained above.
 			// So(destination, ShouldEqual, os.Stderr)
 		})
 

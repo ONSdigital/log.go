@@ -45,7 +45,7 @@ func (l *EventHTTP) attach(le *EventData) {
 // passed in, for example when wrapping a http.Handler.
 func HTTP(req *http.Request, statusCode int, responseContentLength int64, startedAt, endedAt *time.Time) option {
 	port := 0
-	if p := req.URL.Port(); len(p) > 0 {
+	if p := req.URL.Port(); p != "" {
 		port, _ = strconv.Atoi(p)
 	}
 
