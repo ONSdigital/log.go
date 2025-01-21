@@ -111,7 +111,7 @@ func TestMiddleware(t *testing.T) {
 			handlerWasCalled = true
 			w.WriteHeader(200)
 		})
-		m := Middleware(http.HandlerFunc(h))
+		m := Middleware(h)
 		So(m, ShouldHaveSameTypeAs, h)
 
 		Convey("Middleware logs an event on nil request", func() {

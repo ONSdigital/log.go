@@ -48,8 +48,7 @@ func (l *EventErrors) attach(le *EventData) {
 // so you shouldn't normally store a log.Error for reuse (e.g. as a
 // package level variable)
 func FormatErrors(errs []error) option {
-
-	var e []EventError
+	e := make([]EventError, 0, len(errs))
 
 	for i := range errs {
 		if errs[i] == nil {

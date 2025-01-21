@@ -2,6 +2,7 @@ package log
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -27,7 +28,7 @@ import (
 func Middleware(f http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req == nil {
-			Event(nil, "nil request in middleware handler", INFO, Data{})
+			Event(context.TODO(), "nil request in middleware handler", INFO, Data{})
 			return
 		}
 

@@ -67,5 +67,4 @@ func TestHTTP(t *testing.T) {
 
 		So(httpEvent.Duration, ShouldBeNil)
 	})
-
 }

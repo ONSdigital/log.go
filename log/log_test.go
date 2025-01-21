@@ -26,9 +26,10 @@ func (w writer) Write(b []byte) (n int, err error) {
 	return 0, nil
 }
 
-// withRequestId sets the correlation id on the context
-func withRequestId(ctx context.Context, correlationId string) context.Context {
-	return context.WithValue(ctx, "request-id", correlationId)
+// withRequestID sets the correlation id on the context
+func withRequestID(ctx context.Context, correlationID string) context.Context {
+	//nolint:staticcheck // test code so collisions are low risk
+	return context.WithValue(ctx, "request-id", correlationID)
 }
 
 func TestLog(t *testing.T) {
@@ -91,7 +92,7 @@ func TestLog(t *testing.T) {
 			eventFuncInst = &eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {
 				wasCalled = true
 			}}
-			Event(nil, "", INFO)
+			Event(context.TODO(), "", INFO)
 			So(wasCalled, ShouldBeTrue)
 		})
 
@@ -102,7 +103,7 @@ func TestLog(t *testing.T) {
 				wasCalled = true
 				severityLevel = severity
 			}}
-			Info(nil, "", INFO)
+			Info(context.TODO(), "", INFO)
 			So(wasCalled, ShouldBeTrue)
 			So(severityLevel, ShouldEqual, INFO)
 		})
@@ -114,7 +115,7 @@ func TestLog(t *testing.T) {
 				wasCalled = true
 				severityLevel = severity
 			}}
-			Warn(nil, "", WARN)
+			Warn(context.TODO(), "", WARN)
 			So(wasCalled, ShouldBeTrue)
 			So(severityLevel, ShouldEqual, WARN)
 		})
@@ -128,13 +129,13 @@ func TestLog(t *testing.T) {
 			}}
 
 			Convey("with error value", func() {
-				Error(nil, "", errors.New("error"))
+				Error(context.TODO(), "", errors.New("error"))
 				So(wasCalled, ShouldBeTrue)
 				So(severityLevel, ShouldEqual, ERROR)
 			})
 
 			Convey("without error value", func() {
-				Error(nil, "", nil)
+				Error(context.TODO(), "", nil)
 				So(wasCalled, ShouldBeTrue)
 				So(severityLevel, ShouldEqual, ERROR)
 			})
@@ -149,13 +150,13 @@ func TestLog(t *testing.T) {
 			}}
 
 			Convey("with error value", func() {
-				Fatal(nil, "", errors.New("fatal error"), FATAL)
+				Fatal(context.TODO(), "", errors.New("fatal error"), FATAL)
 				So(wasCalled, ShouldBeTrue)
 				So(severityLevel, ShouldEqual, FATAL)
 			})
 
 			Convey("without error value", func() {
-				Fatal(nil, "", nil, FATAL)
+				Fatal(context.TODO(), "", nil, FATAL)
 				So(wasCalled, ShouldBeTrue)
 				So(severityLevel, ShouldEqual, FATAL)
 			})
@@ -183,15 +184,15 @@ func TestLog(t *testing.T) {
 
 	Convey("eventWithOptionsCheck panics if the same option is passed multiple times", t, func() {
 		So(func() {
-			eventWithOptionsCheck(nil, "event", INFO, Data{}, Data{})
+			eventWithOptionsCheck(context.TODO(), "event", INFO, Data{}, Data{})
 		}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		So(func() {
-			eventWithOptionsCheck(nil, "event", FATAL, INFO)
+			eventWithOptionsCheck(context.TODO(), "event", FATAL, INFO)
 		}, ShouldPanicWith, "can't pass severity as a parameter")
 
 		Convey("The first duplicate argument causes the panic", func() {
 			So(func() {
-				eventWithOptionsCheck(nil, "event", FATAL, Data{}, &EventHTTP{}, Data{})
+				eventWithOptionsCheck(context.TODO(), "event", FATAL, Data{}, &EventHTTP{}, Data{})
 			}, ShouldPanicWith, "can't pass in the same parameter type multiple times: github.com/ONSdigital/log.go/v2/log.Data")
 		})
 	})
@@ -227,14 +228,13 @@ func TestLog(t *testing.T) {
 	})
 
 	Convey("createEvent creates a new event", t, func() {
-
 		Convey("createEvent should set the namespace", func() {
-			evt := createEvent(nil, "event", INFO)
+			evt := createEvent(context.TODO(), "event", INFO)
 			So(evt.Namespace, ShouldEqual, Namespace)
 		})
 
 		Convey("createEvent should set the timestamp", func() {
-			evt := createEvent(nil, "event", INFO)
+			evt := createEvent(context.TODO(), "event", INFO)
 			So(evt.CreatedAt.Unix(), ShouldBeGreaterThan, 0)
 
 			now := time.Now().UTC()
@@ -249,32 +249,31 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("createEvent should set the event", func() {
-			evt := createEvent(nil, "event", INFO)
+			evt := createEvent(context.TODO(), "event", INFO)
 			So(evt.Event, ShouldEqual, "event")
 
-			evt = createEvent(nil, "test", INFO)
+			evt = createEvent(context.TODO(), "test", INFO)
 			So(evt.Event, ShouldEqual, "test")
 		})
 
 		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
-			ctx := withRequestId(context.Background(), "trace ID")
+			ctx := withRequestID(context.Background(), "trace ID")
 			evt := createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "trace ID")
 
-			ctx = withRequestId(context.Background(), "another ID")
+			ctx = withRequestID(context.Background(), "another ID")
 			evt = createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "another ID")
 		})
 
 		Convey("createEvent attaches options to the parent event", func() {
-			evt := createEvent(nil, "event", INFO)
+			evt := createEvent(context.TODO(), "event", INFO)
 			So(evt.Auth, ShouldBeNil)
 
 			e := Auth(USER, "identity")
-			evt = createEvent(nil, "event", INFO, e)
+			evt = createEvent(context.TODO(), "event", INFO, e)
 			So(evt.Auth, ShouldEqual, e)
 		})
-
 	})
 
 	Convey("print writes to stdout, or stderr on failure", t, func() {
@@ -342,10 +341,9 @@ func TestLog(t *testing.T) {
 	})
 
 	Convey("handleStyleError handles errors when serialising a log event", t, func() {
-
 		Convey("return same bytes if error is nil", func() {
 			b := []byte("test")
-			b2 := handleStyleError(nil, EventData{}, eventFunc{nil}, b, nil)
+			b2 := handleStyleError(context.TODO(), EventData{}, eventFunc{nil}, b, nil)
 			So(b, ShouldResemble, b2)
 		})
 
@@ -398,21 +396,20 @@ func TestLog(t *testing.T) {
 
 		Convey("panic if running in test mode", func() {
 			So(func() {
-				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {}}, []byte("test"), errors.New("test"))
+				handleStyleError(context.TODO(), EventData{}, eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {}}, []byte("test"), errors.New("test"))
 			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
-
 	})
 
 	Convey("styleForMachine outputs JSON Lines format", t, func() {
-		b := styleForMachine(nil, EventData{}, eventFunc{nil})
+		b := styleForMachine(context.TODO(), EventData{}, eventFunc{nil})
 		// note: it's possible that json.Marshal won't always output the fields
 		// 		 in the same order - can't think of a great solution atm
 		So(string(b), ShouldResemble, "{\"created_at\":\"0001-01-01T00:00:00Z\",\"namespace\":\"\",\"event\":\"\"}")
 	})
 
 	Convey("styleForHuman outputs pretty printed JSON format", t, func() {
-		b := styleForHuman(nil, EventData{}, eventFunc{nil})
+		b := styleForHuman(context.TODO(), EventData{}, eventFunc{nil})
 		// note: it's possible that json.Marshal won't always output the fields
 		// 		 in the same order - can't think of a great solution atm
 		So(string(b), ShouldResemble, "{\n  \"created_at\": \"0001-01-01T00:00:00Z\",\n  \"event\": \"\",\n  \"namespace\": \"\"\n}")
@@ -437,13 +434,12 @@ func TestLog(t *testing.T) {
 			return len(b), nil
 		}}
 
-		eventWithoutOptionsCheck(nil, "test", INFO)
+		eventWithoutOptionsCheck(context.TODO(), "test", INFO)
 
 		So(string(bytesWritten), ShouldResemble, "styled output\n")
 	})
 
 	Convey("destination is protected against data races", t, func() {
-
 		Convey("Given a process logging from a goroutine", func() {
 			letTheRaceBegin := make(chan bool)
 			letTheRaceEnd := make(chan bool)
@@ -459,7 +455,6 @@ func TestLog(t *testing.T) {
 				<-letTheRaceEnd
 				So(true, ShouldEqual, true) // all we are testing for is the absence of detecting a data race
 			})
-
 		})
 
 		Convey("Given the standard destination returns an error", func() {
@@ -489,10 +484,11 @@ func TestGetRequestID(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given context contains a request id key of type string", t, func() {
+		//nolint:staticcheck // test code so collisions are low risk
 		testCtx := context.WithValue(context.Background(), "request-id", "test123")
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldEqual, "test123")
@@ -504,7 +500,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.WithValue(context.Background(), request.RequestIdKey, "test321")
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldEqual, "test321")
@@ -516,7 +512,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.Background()
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldBeEmpty)
