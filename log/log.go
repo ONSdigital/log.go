@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ONSdigital/dp-net/v2/request"
+	"github.com/ONSdigital/dp-net/v3/request"
 	"github.com/hokaccha/go-prettyjson"
 	"go.opentelemetry.io/otel/trace"
 )
