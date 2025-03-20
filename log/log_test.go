@@ -26,9 +26,9 @@ func (w writer) Write(b []byte) (n int, err error) {
 	return 0, nil
 }
 
-// withRequestId sets the correlation id on the context
-func withRequestId(ctx context.Context, correlationId string) context.Context {
-	return context.WithValue(ctx, "request-id", correlationId)
+// withRequestID sets the correlation id on the context
+func withRequestID(ctx context.Context, correlationID string) context.Context {
+	return context.WithValue(ctx, "request-id", correlationID)
 }
 
 func TestLog(t *testing.T) {
@@ -225,7 +225,6 @@ func TestLog(t *testing.T) {
 	})
 
 	Convey("createEvent creates a new event", t, func() {
-
 		Convey("createEvent should set the namespace", func() {
 			evt := createEvent(nil, "event", INFO)
 			So(evt.Namespace, ShouldEqual, Namespace)
@@ -255,11 +254,11 @@ func TestLog(t *testing.T) {
 		})
 
 		Convey("createEvent sets the TraceID field to the request ID in the context", func() {
-			ctx := withRequestId(context.Background(), "trace ID")
+			ctx := withRequestID(context.Background(), "trace ID")
 			evt := createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "trace ID")
 
-			ctx = withRequestId(context.Background(), "another ID")
+			ctx = withRequestID(context.Background(), "another ID")
 			evt = createEvent(ctx, "event", INFO)
 			So(evt.TraceID, ShouldEqual, "another ID")
 		})
@@ -272,7 +271,6 @@ func TestLog(t *testing.T) {
 			evt = createEvent(nil, "event", INFO, e)
 			So(evt.Auth, ShouldEqual, e)
 		})
-
 	})
 
 	Convey("print writes to stdout, or stderr on failure", t, func() {
@@ -340,7 +338,6 @@ func TestLog(t *testing.T) {
 	})
 
 	Convey("handleStyleError handles errors when serialising a log event", t, func() {
-
 		Convey("return same bytes if error is nil", func() {
 			b := []byte("test")
 			b2 := handleStyleError(nil, EventData{}, eventFunc{nil}, b, nil)
@@ -399,7 +396,6 @@ func TestLog(t *testing.T) {
 				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {}}, []byte("test"), errors.New("test"))
 			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
-
 	})
 
 	Convey("styleForMachine outputs JSON Lines format", t, func() {
@@ -441,7 +437,6 @@ func TestLog(t *testing.T) {
 	})
 
 	Convey("destination is protected against data races", t, func() {
-
 		Convey("Given a process logging from a goroutine", func() {
 			letTheRaceBegin := make(chan bool)
 			letTheRaceEnd := make(chan bool)
@@ -457,7 +452,6 @@ func TestLog(t *testing.T) {
 				<-letTheRaceEnd
 				So(true, ShouldEqual, true) // all we are testing for is the absence of detecting a data race
 			})
-
 		})
 
 		Convey("Given the standard destination returns an error", func() {
@@ -490,7 +484,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.WithValue(context.Background(), "request-id", "test123")
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldEqual, "test123")
@@ -502,7 +496,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.WithValue(context.Background(), request.RequestIdKey, "test321")
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldEqual, "test321")
@@ -514,7 +508,7 @@ func TestGetRequestID(t *testing.T) {
 		testCtx := context.Background()
 
 		Convey("When I try to retrieve the request id from the context", func() {
-			requestID := getRequestId(testCtx)
+			requestID := getRequestID(testCtx)
 
 			Convey("Then the request id value is returned", func() {
 				So(requestID, ShouldBeEmpty)

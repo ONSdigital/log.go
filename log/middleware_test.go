@@ -111,7 +111,7 @@ func TestMiddleware(t *testing.T) {
 			handlerWasCalled = true
 			w.WriteHeader(200)
 		})
-		m := Middleware(http.HandlerFunc(h))
+		m := Middleware(h)
 		So(m, ShouldHaveSameTypeAs, h)
 
 		Convey("Middleware logs an event on nil request", func() {
@@ -130,7 +130,7 @@ func TestMiddleware(t *testing.T) {
 
 		Convey("Inner handler is called by middleware", func() {
 			So(handlerWasCalled, ShouldBeFalse)
-			req, err := http.NewRequest("GET", "/", nil)
+			req, err := http.NewRequest("GET", "/", http.NoBody)
 			So(err, ShouldBeNil)
 			So(req, ShouldNotBeNil)
 			m.ServeHTTP(&responseWriter{}, req)
@@ -145,7 +145,7 @@ func TestMiddleware(t *testing.T) {
 
 			So(events, ShouldHaveLength, 0)
 
-			req, err := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", nil)
+			req, err := http.NewRequest("GET", "http://localhost:1234/a/b/c?x=1&y=2", http.NoBody)
 			So(err, ShouldBeNil)
 			ctx := context.Background()
 			req = req.WithContext(ctx)

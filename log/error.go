@@ -48,7 +48,7 @@ func (l *EventErrors) attach(le *EventData) {
 // so you shouldn't normally store a log.Error for reuse (e.g. as a
 // package level variable)
 func FormatErrors(errs []error) option {
-
+	//nolint:prealloc // Preallocating is unnecessary as the slice size is unpredictable at this point.
 	var e []EventError
 
 	for i := range errs {

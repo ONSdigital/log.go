@@ -27,6 +27,7 @@ import (
 func Middleware(f http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req == nil {
+			//nolint:staticcheck // Passing nil context here is intentional
 			Event(nil, "nil request in middleware handler", INFO, Data{})
 			return
 		}

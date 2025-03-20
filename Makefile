@@ -15,4 +15,4 @@ build:
 
 .PHONY: lint
 lint:
-	golangci-lint --fast --enable=gosec --enable=gocritic --enable=gofmt --enable=gocyclo --enable=bodyclose --enable=gocognit run
+	golangci-lint run ./...
