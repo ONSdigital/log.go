@@ -22,5 +22,9 @@ require (
 	github.com/smarty/assertions v1.16.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 )
+
+// necessary to mitigate CVE-2022-27191, CVE-2024-45337
+tool golang.org/x/crypto/ssh
