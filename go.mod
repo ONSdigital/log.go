@@ -1,6 +1,6 @@
 module github.com/ONSdigital/log.go/v2
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/ONSdigital/dp-net/v3 v3.2.0
@@ -22,8 +22,8 @@ require (
 	github.com/smarty/assertions v1.16.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 )
 
 // necessary to mitigate CVE-2022-27191, CVE-2024-45337
