@@ -169,9 +169,10 @@ type EventData struct {
 	Event     string    `json:"event"`
 
 	// Optional fields
-	TraceID  string    `json:"trace_id,omitempty"`
-	SpanID   string    `json:"span_id,omitempty"`
-	Severity *severity `json:"severity,omitempty"`
+	TraceID        string    `json:"trace_id,omitempty"`
+	SpanID         string    `json:"span_id,omitempty"`
+	Severity       *severity `json:"severity,omitempty"`
+	Classification string    `json:"classification,omitempty"`
 
 	// Optional nested data
 	HTTP *EventHTTP `json:"http,omitempty"`

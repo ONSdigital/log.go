@@ -388,13 +388,13 @@ func TestLog(t *testing.T) {
 			So(calledOpts[1], ShouldHaveSameTypeAs, Data{})
 			d := calledOpts[1].(Data)
 			So(d, ShouldContainKey, "event_data")
-			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
+			So(d["event_data"], ShouldEqual, "{CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> Classification: HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
 
 		Convey("panic if running in test mode", func() {
 			So(func() {
 				handleStyleError(nil, EventData{}, eventFunc{func(ctx context.Context, event string, severity severity, opts ...option) {}}, []byte("test"), errors.New("test"))
-			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
+			}, ShouldPanicWith, "error marshalling event data: {CreatedAt:0001-01-01 00:00:00 +0000 UTC Namespace: Event: TraceID: SpanID: Severity:<nil> Classification: HTTP:<nil> Auth:<nil> Data:<nil> Errors:<nil>}")
 		})
 	})
 
