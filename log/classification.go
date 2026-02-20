@@ -1,7 +1,11 @@
 package log
 
-type Classification string
+type classification string
 
-func (c Classification) attach(le *EventData) {
+func (c classification) attach(le *EventData) {
 	le.Classification = string(c)
+}
+
+func Classification(classification classification) option {
+	return classification
 }
