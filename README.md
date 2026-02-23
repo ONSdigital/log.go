@@ -190,6 +190,19 @@ log.Error(context.Background(), "unexpected error", customErr)
   "severity": 1
 }
 ```
+Logging an event with a classification parameter
+```go
+log.Info(context.Background(), "info message with classification", log.Classification(log.ProtectiveMonitoring))
+```
+```json
+{
+  "created_at": "2020-12-10T11:16:39.1564Z",
+  "classification": "PROTECTIVE_MONITORING",
+  "event": "info message with classification",
+  "namespace": "dp-logging-example",
+  "severity": 3
+}
+```
 Full code example:
 ```go
 package main
@@ -237,6 +250,9 @@ func main() {
 
   // Log an error event with additional parameters
   log.Error(context.Background(), "unexpected error", customErr)
+  
+  // Log an error event with classifications
+  log.Info(context.Background(), "info message with classification", log.Classification(log.ProtectiveMonitoring))
 }
 ```
 **Notes:**
@@ -252,6 +268,9 @@ func main() {
 
 - The `log.Event()` interface does not require you to provide a log (severity) level but it's recommended you provide this 
   field if possible/where appropriate. Better yet use the Wrapper functions `log.Info(...)`, `log.Warn(...)`, `log.Error(...)` and `log.Fatal(...)` to inherit log level.
+
+
+- The `log.Classification()` is used to add an optional classification field that are set as consts. Currently the only available classification is `log.ProtectiveMonitoring` which outputs "PROTECTIVE_MONITORING".
 
 ### Scripts
 

@@ -2,10 +2,14 @@ package log
 
 type classification string
 
+const (
+	ProtectiveMonitoring classification = "PROTECTIVE_MONITORING"
+)
+
 func (c classification) attach(le *EventData) {
-	le.Classification = string(c)
+	le.Classification = c
 }
 
-func Classification(classification classification) option {
-	return classification
+func Classification(c classification) option {
+	return c
 }

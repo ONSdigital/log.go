@@ -11,9 +11,9 @@ func TestClassification(t *testing.T) {
 		event := &EventData{}
 		So(event.Classification, ShouldBeEmpty)
 
-		opt := Classification("PROTECTIVE_MONITORING")
+		opt := Classification(ProtectiveMonitoring)
 		opt.attach(event)
 
-		So(event.Classification, ShouldEqual, "PROTECTIVE_MONITORING")
+		So(string(event.Classification), ShouldEqual, "PROTECTIVE_MONITORING")
 	})
 }
